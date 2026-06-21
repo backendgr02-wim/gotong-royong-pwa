@@ -1,7 +1,21 @@
 import type { NextConfig } from "next";
 
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  { key: "Permissions-Policy", value: "geolocation=(self), camera=(self), microphone=()" },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  // Catatan: CSP dengan nonce + Serwist PWA + adapter @opennextjs/cloudflare ditambahkan di M7/M8.
 };
 
 export default nextConfig;

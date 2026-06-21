@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/* === Design System: Social Synergy (token persis dari gotong_royong_app/lib/theme.dart) === */
+@theme {
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-primary-deep: #006c49;
+  --color-header: #0e7a45;
+  --color-finance: #0a5c34;
+  --color-accent: #f59e0b;
+  --color-bg: #f9fafb;
+  --color-surface: #ffffff;
+  --color-ink: #1a1b22;
+  --color-muted: #5f5e60;
+  --color-outline: #e5e7eb;
+  --color-success-subtle: #ecfdf5;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1.5rem; /* 24px */
+}
+
+/* Aplikasi ini light-mode (sesuai mockup). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hormati pengguna yang mematikan animasi */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* === Cetak / Simpan PDF (mis. Laporan Kas) ===
+   Sembunyikan navigasi & elemen ber-class .no-print; jadikan dokumen putih hemat tinta. */
+@media print {
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    padding-bottom: 0 !important;
+  }
+  .print-plain {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc;
+  }
 }
