@@ -65,8 +65,16 @@ export default async function Komunitas() {
                 </div>
               </div>
 
-              <Link href={`/komunitas/${p.id}`} className="block">
+              <Link href={`/komunitas/${p.id}`} className="block space-y-2">
                 <p className="whitespace-pre-line text-sm text-ink/90">{p.isi}</p>
+                {p.fotoUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={p.fotoUrl}
+                    alt="Foto postingan"
+                    className="w-full rounded-xl object-cover max-h-72 bg-gray-50"
+                  />
+                )}
               </Link>
 
               <div className="flex items-center gap-4 border-t border-outline pt-3">

@@ -64,7 +64,17 @@ export default async function DetailPost({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          <p className="whitespace-pre-line text-sm text-ink/90">{post.isi}</p>
+          <div className="space-y-2">
+            <p className="whitespace-pre-line text-sm text-ink/90">{post.isi}</p>
+            {post.fotoUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={post.fotoUrl}
+                alt="Foto postingan"
+                className="w-full rounded-xl object-cover max-h-96 bg-gray-50"
+              />
+            )}
+          </div>
 
           <div className="flex items-center gap-4 border-t border-outline pt-3">
             <form action={toggleSuka}>

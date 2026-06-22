@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { postSchema, komentarSchema, postRefSchema } from "@/lib/validation";
+import { uploadPostImage } from "@/lib/storage";
 import type { ActionState } from "./auth";
 
 /** Ambil community_id sebuah post (untuk integritas + memenuhi RLS reaksi/komentar). */
@@ -16,7 +17,7 @@ async function communityIdPost(
   return data?.community_id ?? null;
 }
 
-/** Buat postingan warga (teks). HANYA anggota. Honeypot anti-bot via field `website`. */
+/** Buat postingan warga (teks + foto opsional). HANYA anggota. Honeypot anti-bot via `website`. */
 export async function buatPost(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await getUser();
   if (!user) return { error: "Harus masuk dulu." };
@@ -26,6 +27,7 @@ export async function buatPost(_prev: ActionState, formData: FormData): Promise<
 
   const parsed = postSchema.safeParse({
     isi: formData.get("isi"),
+    fotoUrl: formData.get("fotoUrl") ?? "",
     website: formData.get("website") ?? "",
   });
   if (!parsed.success) {
@@ -34,11 +36,20 @@ export async function buatPost(_prev: ActionState, formData: FormData): Promise<
   // Honeypot terisi → kemungkinan bot; pura-pura sukses tanpa menyimpan.
   if (parsed.data.website) redirect("/komunitas");
 
+  let fotoUrl: string | null = null;
+  const file = formData.get("foto") as File | null;
+  if (file && file.size > 0) {
+    const upload = await uploadPostImage(file, user.id);
+    if ("error" in upload) return { error: upload.error };
+    fotoUrl = upload.publicUrl;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("posts").insert({
     community_id: komunitas.id,
     author_id: user.id,
     isi: parsed.data.isi,
+    foto_url: fotoUrl,
   });
   if (error) return { error: error.message };
 

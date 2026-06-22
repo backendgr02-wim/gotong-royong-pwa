@@ -1,16 +1,34 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X, Upload } from "lucide-react";
 import { buatPost } from "@/actions/posts";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-/** Form anggota menulis postingan (teks). Foto menyusul (sub-langkah Storage). */
 export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(buatPost, null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) {
+      const url = URL.createObjectURL(f);
+      setPreview((old) => {
+        if (old) URL.revokeObjectURL(old);
+        return url;
+      });
+    }
+  }
+
+  function hapusFile() {
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
+  }
 
   return (
     <div>
@@ -29,7 +47,6 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
       <div className="p-4">
         <Card>
           <form action={action} className="space-y-4">
-            {/* Honeypot anti-bot (disembunyikan dari manusia). */}
             <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
               <label>
                 Website
@@ -51,6 +68,38 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
                 placeholder="Tulis cerita, info, atau ajakan untuk warga…"
                 className="w-full rounded-2xl border border-outline px-4 py-3 text-base outline-none focus:border-primary"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-outline px-4 py-8 text-sm text-muted hover:border-primary hover:text-primary">
+                <Upload size={20} />
+                {preview ? "Ganti foto" : "Tambahkan foto (opsional)"}
+                <input
+                  type="file"
+                  name="foto"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onFile}
+                />
+              </label>
+
+              {preview && (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={preview}
+                    alt="Pratinjau"
+                    className="max-h-48 w-full rounded-xl object-contain bg-gray-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={hapusFile}
+                    className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
