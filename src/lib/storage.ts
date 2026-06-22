@@ -1,13 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY!;
-
-function serviceClient() {
-  return createClient(SUPABASE_URL, SUPABASE_SECRET, {
-    auth: { persistSession: false },
-  });
-}
+import { createClient } from "@/lib/supabase/server";
 
 function sanitizeFilename(name: string): string {
   return name
@@ -26,7 +17,7 @@ export async function uploadBuktiTransfer(
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const supabase = serviceClient();
+  const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
     .from("donation-proofs")
     .upload(filePath, buffer, {
@@ -57,7 +48,7 @@ export async function uploadPostImage(
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const supabase = serviceClient();
+  const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
     .from("post-images")
     .upload(filePath, buffer, {
@@ -84,7 +75,7 @@ export async function uploadAvatar(
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const supabase = serviceClient();
+  const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(filePath, buffer, {
@@ -111,7 +102,7 @@ export async function uploadReportImage(
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const supabase = serviceClient();
+  const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
     .from("report-images")
     .upload(filePath, buffer, {
