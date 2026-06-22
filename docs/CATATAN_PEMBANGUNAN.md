@@ -1,11 +1,11 @@
 # 📒 CATATAN PEMBANGUNAN — Gotong Royong PWA
-**Engineering & Architecture Build Log** · v2 · Diperbarui: 20 Jun 2026 (sesi 7 — fix auth callback)
+**Engineering & Architecture Build Log** · v3 · Diperbarui: 22 Jun 2026 (sesi 10 — M7 PWA Offline selesai, perencanaan v1 lengkap)
 
 > Dokumen ini adalah "buku catatan insinyur" gaya perusahaan besar: status proyek, arsitektur,
 > keputusan beserta alasannya (ADR), model data & keamanan, inventaris berkas, dan **titik lanjut**
 > supaya siapa pun (atau AI mana pun) bisa meneruskan tanpa kehilangan konteks.
 > Pasangan dokumen: `PRD.md` (kebutuhan), `RENCANA_DATA.md` (alignment UI↔DB), `DESIGN.md` (token),
-> `ROADMAP.md` (fitur diparkir), dan rencana 8 minggu di `~/.claude/plans/joyful-dancing-dijkstra.md`.
+> `ROADMAP.md` (fitur diparkir), `docs/PERENCANAAN_V1.md` (TODO lengkap sisa pekerjaan).
 
 ---
 
@@ -38,6 +38,12 @@
 - **✅ Upload avatar Profil (21 Jun sesi 9):** `uploadAvatar()` ke bucket publik `avatars` (upsert); `simpanAvatar` action; `AvatarForm` komponen trigger-on-select; render img di kartu profil. `build`+`lint`=0/0.
 - **✅ Upload foto Laporan (21 Jun sesi 9):** `uploadReportImage()` ke bucket privat `report-images` (signed URL 30 hari); form + preview + render di daftar lapor. `build`+`lint`=0/0.
 - **✅ Git remote + push (21 Jun sesi 9):** repo `gotong-royong-pwa` (Private) dibuat di `backendgr02-wim` via browser. Git config lokal di-set. 4 commits pushed: `6182ae7` (init), `5db39de` (M1-M5), `820a0fa` (M6 donasi), `d1c838b` (foto feed), `daa2509` (avatar + foto lapor).
+- **✅ M7 PWA Offline SELESAI DIKODING & BUILD HIJAU (22 Jun sesi 10):** Serwist configurator mode (Turbopack-compatible! — `withSerwistInit` webpack wrapper TIDAK DIPAKAI karena Next 16 pakai Turbopack default). Service worker (`src/app/sw.ts`): precache 39 URL (~800 kB), navigation preload, runtimeCaching (`defaultCache`). Offline fallback (`/~offline`) via `fallbacks.entries`. Manifest (`public/manifest.json`): standalone, portrait, theme `#059669`, icon 192+512 maskable. Icons (`public/icons/icon-192x192.png`, `icon-512x512.png`). Offline action queue (`src/lib/idb.ts`): `queueAction`, `getPendingActions`, `processQueue`, `clearSyncedActions`, `getQueueCount`. NetworkStatus banner (`src/components/features/network-status.tsx`): fixed top bar saat offline + "Koneksi tersambung kembali" 3 detik. `src/app/layout.tsx` diperkaya: `SerwistProvider`, full PWA metadata (`appleWebApp`, manifest link, OG/Twitter), `NetworkStatus` wrapper. Build scripts di-ubah: `dev` = `concurrently 'serwist build --watch' 'next dev -p 6789'`; `build` = `next build && serwist build`. DevDeps baru: `@serwist/cli`, `esbuild`, `concurrently`. `public/sw.js` + `public/sw.js.map` auto-generated → di-gitignore. `npm run build` = 0 error, 0 warning. **BELUM di-commit** (15 file modified/added).
+- **✅ `docs/PERENCANAAN_V1.md` DIBUAT (22 Jun sesi 10):** 472 baris perencanaan lengkap sisa pekerjaan, prioritas 🔴 P1 (Uji Runtime) → 🟡 P2 (UX Polish) → 🟡 P3 (PWA/Perf) → 🟠 P4 (M8 Deploy) → 🔵 P5 (Admin opsional). Sudah termasuk inventaris file, perintah cepat, dan status lingkungan terbaru.
+- **✅ P1 UJI RUNTIME DILAKUKAN (22 Jun sesi 11):** Uji runtime via browser chrome-direct `--headed` (`chrome-kontrol`). Semua halaman **loading sukses**: Beranda (update saldo realtime ✅), Masuk, Onboarding, Komunitas (feed), Profil, Donasi, Kegiatan, Laporan Kas, Pesan, Lapor, Polling, Offline. Fitur interaktif: **Catat Kas** (Rp 50.000 ✅ saldo + rantai-hash ✅), **Buat Postingan** (teks ✅ like ✅ komentar ✅), **Cek Keaslian** (segela utuh ✅). `npm run build` = **0 error**.
+- **🐛 BUG #1: Hydration error `NetworkStatus` → DI FIX:** Server render `<main>` tapi client `navigator.onLine=false` di sandbox menyebabkan mismatch offline banner vs konten. **Fix** (`src/components/features/network-status.tsx:6`): inisialisasi `useState(true)` tanpa conditional — biar effect yang koreksi setelah mount.
+- **🐛 BUG #2: `digest()` tidak ditemukan di trigger kas → DI FIX:** pgcrypto di Supabase terinstal di schema `extensions`, bukan `public`. Trigger `kas_hash_chain` punya `set search_path = public` sehingga `digest()` tidak terlihat → error `"function digest(text, unknown) does not exist"`. **Fix** (`src/db/migrations/0007_fix_pgcrypto_search_path.sql`): ubah search_path kedua fungsi menjadi `public, extensions`. SQL diaplikasikan via Supabase Management API (PAT). Kas entry + verifikasi rantai-hash berfungsi ✅.
+- **▶️ Lanjut dari sini:** Ikut `docs/PERENCANAAN_V1.md`. 🔴 P1 sudah >80% — sisa: uji auth callback magic link, uji upload foto (avatar/postingan/lapor/donasi), uji RSVP kegiatan, uji polling vote, uji notifikasi realtime. Setelah semua hijau → lanjut 🟡 **P2 — UX Polish**.
 
 ---
 
@@ -51,11 +57,13 @@
 | **M4** Komunitas / Feed | 🟢 **Dikoding (auth callback fix di-apply)** | 20 Jun: `/komunitas` feed (post+suka+komentar+hapus). build+lint 0/0. Foto postingan ditunda |
 | **M5** Buat Aksi (Lapor/Polling/Pesan) | 🟢 **Dikoding (auth callback fix di-apply)** | 20 Jun: Lapor RT/RW (+GPS), Polling (+vote+hasil), Pesan/notif (+badge bell). Trigger `0004` + Storage `0005` ✅ di-apply. Foto lapor ditunda |
 | **M6** Donasi & Iuran + upload foto (feed/avatar/lapor) | 🟢 **Lengkap + push** | 21 Jun: form+upload+bukti+trigger ✅; feed/avatar/lapor upload ✅ |
-| **Lapisan DB (skema + RLS)** lintas-fase | ✅ **100% ditulis** | Belum di-apply ke DB |
-| **Lapisan validasi (zod)** | ✅ **100%** | Semua form |
+| **M7** PWA Offline | 🟢 **Dikoding & build hijau (22 Jun sesi 10)** | Serwist configurator, IndexedDB queue, offline page, manifest, icons. **Belum di-commit.** |
+| Lapisan DB (skema + RLS) lintas-fase | ✅ **100% ditulis & di-apply** | 21 tabel, 54 policy, 6 migrasi di-apply. |
+| Lapisan validasi (zod) | ✅ **100%** | Semua form punya Server Action + zod schema. |
 
 **Kesimpulan:** seluruh pekerjaan yang *bisa* dikerjakan tanpa akun asli **sudah dikerjakan & terverifikasi
-build**. Bottleneck tunggal sekarang = provisioning Supabase (butuh kehadiran Anda).
+build**. Prioritas tunggal sekarang = **uji runtime end-to-end (P1)** sebelum deploy.
+Lihat `docs/PERENCANAAN_V1.md` untuk daftar TODO lengkap & urutan prioritas.
 
 ---
 
@@ -65,21 +73,21 @@ build**. Bottleneck tunggal sekarang = provisioning Supabase (butuh kehadiran An
                     ┌─────────────────────────────────────────────┐
    Warga / Pengurus │   PWA (Next.js 16, installable di HP)        │
    (HP murah, 3G)   │   - RSC + Server Actions (form, no /api)     │
-                    │   - Serwist (offline + IndexedDB) [M7]       │
-                    └───────────────┬─────────────────────────────┘
-                                    │  cookie sesi (di-refresh oleh proxy.ts)
-                                    │  @supabase/ssr (publishable key)
-                    ┌───────────────▼─────────────────────────────┐
-                    │   SUPABASE (1 layanan, semua gratis)         │
-                    │   - Auth (email OTP / magic link)            │
-                    │   - Postgres + RLS  ← OTORISASI di sini       │
-                    │   - Storage (foto: avatar/post/lapor/bukti)  │
-                    └───────────────┬─────────────────────────────┘
-                                    │ (jadwal sholat)
-                    ┌───────────────▼──────────┐   ┌───────────────────────┐
-                    │ Aladhan API (gratis,     │   │ Web Push VAPID [M7]   │
-                    │ metode Kemenag RI)       │   │ Cloudflare Turnstile  │
-                    └──────────────────────────┘   └───────────────────────┘
+                     │   - Serwist (offline + IndexedDB) [M7]       │
+                     └───────────────┬─────────────────────────────┘
+                                     │  cookie sesi (di-refresh oleh proxy.ts)
+                                     │  @supabase/ssr (publishable key)
+                     ┌───────────────▼─────────────────────────────┐
+                     │   SUPABASE (1 layanan, semua gratis)         │
+                     │   - Auth (email OTP / magic link)            │
+                     │   - Postgres + RLS  ← OTORISASI di sini       │
+                     │   - Storage (foto: avatar/post/lapor/bukti)  │
+                     └───────────────┬─────────────────────────────┘
+                                     │ (jadwal sholat)
+                     ┌───────────────▼──────────┐   ┌───────────────────────┐
+                     │ Aladhan API (gratis,     │   │ Web Push VAPID [M7]   │
+                     │ metode Kemenag RI)       │   │ Cloudflare Turnstile  │
+                     └──────────────────────────┘   └───────────────────────┘
 
    Deploy: GitHub → Cloudflare Workers (OpenNext) — auto-deploy on push [M8]
 ```
@@ -115,6 +123,8 @@ build**. Bottleneck tunggal sekarang = provisioning Supabase (butuh kehadiran An
 > - **`middleware` → `proxy`** (file `src/proxy.ts`).
 > - **`cookies()` async** → `await cookies()` di klien server Supabase.
 > - **kunci Supabase**: pakai `publishable`/`secret` (legacy anon/service usang akhir 2026).
+> - **Turbopack default bundler** — webpack-only plugin (termasuk `withSerwistInit`) TIDAK bisa dipakai
+>   di `next build`. Solusi: configurator mode Serwist (`serwist.config.js` + `serwist build` CLI).
 
 ---
 
@@ -139,7 +149,7 @@ deploy via `@opennextjs/cloudflare` ke Workers. Konsekuensi: legal, gratis, duku
 Cloudflare Workers Builds (M8).
 
 **ADR-004 — Donasi = transfer manual + foto bukti (bukan payment gateway).**
-Konteks: payment gateway (Xendit/QRIS) = biaya per transaksi + **wajib lisензi OJK/PJSP** (menampung uang).
+Konteks: payment gateway (Xendit/QRIS) = biaya per transaksi + **wajib lisensi OJK/PJSP** (menampung uang).
 Keputusan: warga transfer ke rekening → unggah bukti → pengurus verifikasi → kas naik. Konsekuensi: gratis,
 tanpa lisensi, cukup untuk transparansi. (Gateway = roadmap jauh.)
 
@@ -153,8 +163,10 @@ Konteks: status proyek "portofolio/gabungan" → harus bisa dijual-ulang ke bany
 tabel scope `community_id`; isolasi via RLS. Konsekuensi: satu deployment = banyak komunitas; demo = produk.
 
 **ADR-007 — PWA via Serwist (penerus next-pwa).** [M7]
-Keputusan: `@serwist/next` (`app/sw.ts`→`public/sw.js`) untuk offline + installable; IndexedDB antrian aksi
-offline. Konsekuensi: tahan jaringan buruk (sesuai target pengguna).
+Konteks: Next.js 16 pakai Turbopack default → webpack-only plugin (termasuk `withSerwistInit`) tidak bisa.
+Keputusan: `@serwist/next` configurator mode (`serwist.config.js` + `serwist build` CLI) untuk offline +
+installable; IndexedDB antrian aksi offline. Konsekuensi: bundler-agnostic, tahan jaringan buruk (sesuai
+target pengguna). `serwist build` jalan terpisah dari `next build`.
 
 **ADR-008 — Scope lock: parkir "SuperApp".**
 Konteks: dokumen klien = 300 fitur, blockchain (Rp 105–470 M di dokumennya), BMT, e-gov, dll — penyebab
@@ -169,6 +181,12 @@ blockchain" (immutability) dengan biaya nol; migrasi ke blockchain nyata hanya j
 Konteks: CLI terminal beda akun; Chrome sudah login. Keputusan: semua operasi GitHub/Supabase/Cloudflare
 lewat skill kaki-tangan, mode terlihat, dengan konfirmasi tiap aksi sensitif + waspada prompt-injection.
 Konsekuensi: aman & auditable; butuh kehadiran Anda untuk langkah infra.
+
+**ADR-011 — PWA offline via Configurator Mode, BUKAN `withSerwistInit`.** [M7, 22 Jun]
+Konteks: Next.js 16.2.9 pakai Turbopack untuk `next dev` DAN `next build`. `withSerwistInit` adalah
+wrapper webpack-only → `npm run build` gagal. Keputusan: migrasi ke configurator mode (`serwist.config.js`
+CommonJS + `serwist build` CLI + `concurrently` untuk dev). Konsekuensi: bundler-agnostic, kompatibel
+Turbopack. `@serwist/next` tetap dipakai untuk `defaultCache` + `SerwistProvider` React.
 
 ---
 
@@ -221,52 +239,68 @@ headers di `next.config.ts`).
 
 ## 7. INVENTARIS BERKAS (apa fungsi tiap file)
 
-**Dokumen** (`docs/`): `PRD.md`, `RENCANA_DATA.md`, `DESIGN.md`, `ROADMAP.md`, `CATATAN_PEMBANGUNAN.md` (ini).
+**Dokumen** (`docs/`): `PRD.md`, `RENCANA_DATA.md`, `DESIGN.md`, `ROADMAP.md`, `CATATAN_PEMBANGUNAN.md` (ini),
+`PERENCANAAN_V1.md` (TODO lengkap sisa pekerjaan + prioritas).
 
-**Config:** `next.config.ts` (security headers), `drizzle.config.ts`, `.env.example`/`.env.local` (placeholder),
-`tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`.
+**Config:** `next.config.ts` (security headers), `serwist.config.js` (configurator mode PWA),
+`drizzle.config.ts`, `.env.local` (rahasia, jangan commit), `tsconfig.json`, `postcss.config.mjs`,
+`eslint.config.mjs`.
 
-**App routes** (`src/app/`):
-- `layout.tsx` (font Plus Jakarta Sans + AppFrame), `globals.css` (token `@theme`).
-- `page.tsx` Beranda (statis, data contoh — disambung M3), `komunitas/`, `aksi/`, `pesan/`, `profil/` (placeholder).
-- `masuk/page.tsx` (form login OTP, client), `onboarding/page.tsx` (server, force-dynamic),
-  `auth/callback/route.ts` (tukar code→sesi).
+**App routes** (`src/app/`) — 22 rute:
+- `layout.tsx` (font Plus Jakarta Sans + SerwistProvider + NetworkStatus + AppFrame), `globals.css` (token `@theme`).
+- `page.tsx` Beranda (RSC, force-dynamic, data nyata), `~offline/page.tsx` (PWA fallback offline).
+- `/masuk`, `/onboarding`, `/auth/callback/route.ts` (auth flow).
+- `/aksi`, `/komunitas` (+ `/baru`, `/[id]`), `/kegiatan` (+ `/baru`), `/pengumuman` (+ `/baru`),
+  `/laporan-kas` (+ `/baru`), `/lapor` (+ `/baru`), `/polling` (+ `/baru`), `/donasi` (+ `/baru`),
+  `/pesan`, `/profil`, `/k/[slug]` (publik anon).
 
-**Komponen** (`src/components/`): `layout/app-frame.tsx` (sembunyikan nav di halaman tertentu),
-`layout/bottom-nav.tsx` (5 tab + FAB), `ui/button.tsx`, `ui/card.tsx`, `ui/screen-header.tsx`,
-`features/onboarding-client.tsx`.
+**Komponen** (`src/components/`):
+- `layout/app-frame.tsx` (sembunyikan nav di halaman tertentu), `layout/bottom-nav.tsx` (5 tab + FAB).
+- `features/network-status.tsx` (online/offline banner), `features/onboarding-client.tsx` (step wizard).
+- `ui/button.tsx`, `ui/card.tsx`, `ui/screen-header.tsx`.
 
-**Lib** (`src/lib/`): `supabase/server.ts` & `client.ts`, `auth.ts` (getUser/getMemberships),
-`validation.ts` (zod semua form), `prayer.ts` (Aladhan), `utils.ts` (cn + format Rupiah).
+**Lib** (`src/lib/`) — 15 file + folder:
+- `supabase/server.ts` & `client.ts`, `auth.ts` (getUser/getMemberships).
+- `kas.ts`, `events.ts`, `announcements.ts`, `posts.ts`, `reports.ts`, `polls.ts`, `notifications.ts`,
+  `donations.ts`, `prayer.ts` (Aladhan), `storage.ts` (upload + signed URL), `idb.ts` (IndexedDB offline queue).
+- `validation.ts` (zod semua form), `utils.ts` (cn + format Rupiah).
 
-**Aksi server** (`src/actions/`): `auth.ts` (signIn OTP, signOut), `community.ts` (createCommunity, joinCommunity).
+**Aksi server** (`src/actions/`) — 12 file: `auth.ts`, `community.ts`, `kas.ts`, `events.ts`,
+`announcements.ts`, `posts.ts`, `reports.ts`, `polls.ts`, `notifications.ts`, `donations.ts`,
+`profile.ts`, `mutabaah.ts`.
 
-**Database** (`src/db/`): `schema.ts` (21 tabel Drizzle), `migrations/0000_init_schema.sql` (DDL),
-`migrations/0001_auth_and_rls.sql` (RLS + trigger + RPC).
+**Database** (`src/db/`): `schema.ts` (21 tabel Drizzle), `migrations/0000–0006` (DDL + RLS + trigger + RPC).
 
 **Infra runtime:** `src/proxy.ts` (refresh sesi Supabase — pengganti middleware Next 16).
+
+**PWA (M7):** `serwist.config.js`, `src/app/sw.ts`, `public/manifest.json`,
+`public/icons/icon-192x192.png`, `public/icons/icon-512x512.png`.
 
 ---
 
 ## 8. STATUS BUILD & VERIFIKASI
-- `npm run build` = **0 error / 0 warning** (sudah dijalankan 3×: setelah scaffold, setelah skema+lib, setelah M2).
+- `npm run build` = **0 error / 0 warning** (terakhir 22 Jun sesi 10 — M7 PWA).
+- Route map: 18 rute dinamis (`ƒ`), 1 statis (`○` /masuk), 1 PWA offline fallback, 1 Proxy (middleware).
+- Service worker: precache 39 URL (~800 kB), swFile `public/sw.js`.
 - `drizzle-kit generate` = sukses (21 tabel terbaca, DDL ter-generate).
-- Route map: statis (`/`, `/komunitas`, `/aksi`, `/pesan`, `/profil`, `/masuk`); dinamis (`/onboarding`,
-  `/auth/callback`); Proxy aktif.
-- ⚠️ Belum diuji runtime karena `.env` Supabase masih kosong (placeholder).
+- ⚠️ **Hampir semua fitur belum diuji runtime** kecuali M2 auth (uji E2E 19 Jun).
 
 ---
 
 ## 9. ENVIRONMENT & RAHASIA YANG DIBUTUHKAN
-Lihat `.env.example`. Yang wajib diisi saat sore:
+Nilai asli di `.env.local` (jangan commit). Yang terisi:
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`.
-- (M7) `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`.
-- (form publik) `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`.
-> Simpan nilai asli di Bitwarden + `.env.local` (jangan commit). Aturan token: least-privilege, ada expiry.
+- `SUPABASE_ACCESS_TOKEN` (PAT, exp 21 Jul 2026) — untuk CLI.
+
+Yang masih kosong (opsional, untuk fitur mendatang):
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (Web Push — M7 opsional).
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (form publik — rencana).
+
+> Simpan nilai asli di Bitwarden. Aturan token: least-privilege, ada expiry.
 
 ---
 
-## 10. ▶️ TITIK LANJUT (mulai dari sini saat sore)
+## 10. ▶️ TITIK LANJUT (mulai dari sini)
 
 > **✅ STATUS 19 Jun 2026:** Langkah **A** (provisioning Supabase + kunci) dan **B** (migrasi + Auth + Storage)
 > **SELESAI**. Project ref `nqlazrjcywyltewsxgmx` · URL `https://nqlazrjcywyltewsxgmx.supabase.co`. Nilai rahasia
@@ -336,6 +370,21 @@ rencana 8 minggu. Update tabel progres di §1 dan status baris di `RENCANA_DATA.
 > Halaman `/masuk` juga ditingkatkan: bungkus `useSearchParams` dalam `<Suspense>` + tampilkan `?error=auth` sebagai pesan error.
 > `npm run build` = **0 error**. **Perlu uji runtime untuk verifikasi fix.**
 
+> **Langkah I — apply migrasi `0006` [✅ SELESAI 21 Jun, via CLI]:** trigger notif verifikasi donasi + auto kas_entry.
+
+> **▶️ STATUS 22 Jun 2026 — Seluruh M1–M7 selesai dikoding & lolos build:**
+> - M1 (fondasi) ✅ · M2 (auth) ✅ teruji · M3 (beranda+kas) 🟢 kode siap · M4 (feed) 🟢
+> - M5 (lapor/polling/pesan) 🟢 · M6 (donasi+upload) 🟢 · M7 (PWA offline) 🟢 build hijau, **belum di-commit**
+> - **Yang BELUM:** uji runtime (hampir semua fitur — 12 skenario), UX polish, PWA performance, deploy Cloudflare
+>
+> **▶️ LANJUTKAN KE `docs/PERENCANAAN_V1.md`** — dokumen perencanaan lengkap dengan TODO terperinci.
+> Kerjakan URUT:
+> 1. **🔴 P1 — Uji Runtime** (4–6 jam): Commit M7 → uji 12 skenario (auth callback fix, kas, upload, feed, kegiatan/RSVP, lapor, polling, donasi, notif, halaman publik, offline)
+> 2. **🟡 P2 — UX Polish** (2–3 jam): skeleton, toast, error boundary, konfirmasi hapus, logo
+> 3. **🟡 P3 — PWA & Performance** (1–2 jam): Lighthouse, installable test, offline queue integration
+> 4. **🟠 P4 — M8 Deploy Cloudflare** (1 hari): OpenNext + wrangler + deploy via kaki-tangan
+> 5. **🔵 P5 — Admin Features** (opsional, 1–2 hari): manajemen anggota, search, pagination, keep-alive, privasi
+
 ---
 
 ## 11. RISIKO & CATATAN TERBUKA
@@ -344,6 +393,8 @@ rencana 8 minggu. Update tabel progres di §1 dan status baris di `RENCANA_DATA.
 - **`prayer_cache` write**: saat ini policy izinkan anggota menulis cache; bila ingin lebih ketat, pindah ke service-role server-only.
 - **Web lama `gotongroyong-web`** (bocor NIK + Vercel) = keputusan Anda "nanti" — jangan sambungkan DB produksi ke sana sampai diperbaiki/dimatikan.
 - **shadcn/ui** belum di-init (pakai komponen tangan ringan); bisa ditambah kapan saja tanpa mengganggu.
+- **Bundle Workers** mungkin tembus 3 MB (batas free). Pantau ukuran setelah deploy.
+- **Offline queue** (`idb.ts`) belum diintegrasikan ke form actions — user offline → belum otomatis simpan ke IndexedDB.
 
 ---
 
@@ -354,11 +405,12 @@ Aladhan (gratis), Web Push (gratis), Turnstile (gratis). Donasi tanpa gateway �
 ---
 
 ## 13. REFERENSI
-- Internal: `PRD.md`, `RENCANA_DATA.md`, `DESIGN.md`, `ROADMAP.md`, `~/.claude/plans/joyful-dancing-dijkstra.md`,
+- Internal: `PRD.md`, `RENCANA_DATA.md`, `DESIGN.md`, `ROADMAP.md`, `PERENCANAAN_V1.md`,
   `~/agensi/skills/kaki-tangan/SKILL.md`, `~/agensi/playbook/docs/00_SOP_EKSEKUSI_AI.md` & `29_standar_keamanan_kode.md`,
   `~/agensi/playbook/AUDIT_PROFESOR_2026_v2.md` (NF-01/02/03/04/07).
-- Riset 2026: OpenNext (`@opennextjs/cloudflare`), Serwist PWA, `@supabase/ssr` + RLS, Supabase free tier,
-  Flutter-web vs PWA, Aladhan API (metode 20 = Kemenag).
+- Riset 2026: OpenNext (`@opennextjs/cloudflare`), Serwist PWA (configurator mode), `@supabase/ssr` + RLS,
+  Supabase free tier, Flutter-web vs PWA, Aladhan API (metode 20 = Kemenag).
+- Next.js 16 Turbopack: `next build` pakai Turbopack default, webpack via `--webpack`.
 ```
-*Akhir catatan. Perbarui §1 (progres) & §10 (titik lanjut) setiap akhir sesi.*
-```
+*Akhir catatan. Perbarui §1 (progres) & §10 (titik lanjut) setiap akhir sesi.
+Lihat `docs/PERENCANAAN_V1.md` untuk daftar TODO lengkap.*

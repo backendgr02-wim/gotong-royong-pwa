@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 
 export function NetworkStatus({ children }: { children: React.ReactNode }) {
-  const [online, setOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
+  const [online, setOnline] = useState(true);
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
+    setOnline(navigator.onLine);
+
     function handleOnline() {
       setOnline(true);
       setShowBanner(true);

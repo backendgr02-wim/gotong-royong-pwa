@@ -65,9 +65,14 @@ docs/               → SEMUA dokumen (baca dulu!)
 ```
 
 ## 4) 📍 STATUS & LINGKUNGAN (baca sebelum kaget)
-- **`.env` kosong = WAJAR** (Supabase belum diprovisioning). App **tetap jalan** (`npm run dev` menampilkan UI statis) karena `proxy.ts` & klien Supabase sudah aman no-op tanpa env. **Login & data baru aktif** setelah `.env` diisi + migrasi dijalankan.
-- **Database BELUM dimigrasi.** Jangan asумsikan tabel ada di Supabase sampai `0000_init_schema.sql` lalu `0001_auth_and_rls.sql` dijalankan (lihat `CATATAN_PEMBANGUNAN.md` §10).
-- Apa yang sudah jadi vs belum → `CATATAN_PEMBANGUNAN.md` §1 (selalu sumber kebenaran status).
+- **Supabase SUDAH diprovisioning (19 Jun 2026).** `.env.local` sudah terisi (jangan commit). 
+  Project `gotong-royong` (ref `nqlazrjcywyltewsxgmx`). Migrasi `0000`–`0006` sudah di-apply.
+- **Semua fitur M1–M7 selesai dikoding & lolos build.** Tapi **hampir tidak ada yang pernah diuji runtime**
+  (kecuali M2 auth). Prioritas tunggal = uji runtime (lihat `docs/PERENCANAAN_V1.md`).
+- **M7 PWA Offline selesai & SUDAH di-commit & push**.
+- **`npm run dev`** = port 6789 (bukan 3000).
+- **Untuk perencanaan lengkap** → baca `docs/PERENCANAAN_V1.md` (urutan TODO dari 🔴 P1 sampai 🔵 P5).
+- Build log & ADR → `docs/CATATAN_PEMBANGUNAN.md`.
 
 ## 5) 🔁 ALUR KERJA TIAP FITUR (ikuti urutan ini)
 `RENCANA_DATA.md` (tulis baris alignment) → migrasi tabel + **RLS** → Server Action + **zod** → UI (skeleton/empty/error) → **uji RLS lintas-komunitas** (user komunitas A tak boleh lihat data B) → `npm run build`.
