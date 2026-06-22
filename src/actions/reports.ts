@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { laporSchema, laporStatusSchema } from "@/lib/validation";
+import { uploadReportImage } from "@/lib/storage";
 import type { ActionState } from "./auth";
 
 /** Buat laporan RT/RW. HANYA anggota. Lokasi GPS opsional; honeypot anti-bot via `website`. */
@@ -20,6 +21,7 @@ export async function buatLapor(_prev: ActionState, formData: FormData): Promise
   const parsed = laporSchema.safeParse({
     kategori: formData.get("kategori"),
     deskripsi: formData.get("deskripsi"),
+    fotoUrl: formData.get("fotoUrl") ?? "",
     website: formData.get("website") ?? "",
     ...(latRaw ? { lat: latRaw } : {}),
     ...(lngRaw ? { lng: lngRaw } : {}),
@@ -29,12 +31,21 @@ export async function buatLapor(_prev: ActionState, formData: FormData): Promise
   }
   if (parsed.data.website) redirect("/lapor"); // honeypot terisi → bot
 
+  let fotoUrl: string | null = null;
+  const file = formData.get("foto") as File | null;
+  if (file && file.size > 0) {
+    const upload = await uploadReportImage(file, user.id);
+    if ("error" in upload) return { error: upload.error };
+    fotoUrl = upload.signedUrl;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("reports").insert({
     community_id: komunitas.id,
     pelapor_id: user.id,
     kategori: parsed.data.kategori,
     deskripsi: parsed.data.deskripsi,
+    foto_url: fotoUrl,
     lat: parsed.data.lat ?? null,
     lng: parsed.data.lng ?? null,
   });

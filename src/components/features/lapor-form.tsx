@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Loader2, Upload, X } from "lucide-react";
 import { buatLapor } from "@/actions/reports";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ const KATEGORI = ["Kebersihan", "Keamanan", "Jalan/Infrastruktur", "Fasilitas Um
 export function LaporForm({ namaKomunitas }: { namaKomunitas: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(buatLapor, null);
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "error">("idle");
 
   function ambilLokasi() {
@@ -91,6 +92,41 @@ export function LaporForm({ namaKomunitas }: { namaKomunitas: string }) {
                 placeholder="Jelaskan masalahnya (mis. lampu jalan mati di depan No. 12)…"
                 className={inputCls}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-outline px-4 py-6 text-sm text-muted hover:border-primary hover:text-primary">
+                <Upload size={20} />
+                {preview ? "Ganti foto" : "Tambahkan foto (opsional)"}
+                <input
+                  type="file"
+                  name="foto"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setPreview((old) => {
+                        if (old) URL.revokeObjectURL(old);
+                        return URL.createObjectURL(f);
+                      });
+                    }
+                  }}
+                />
+              </label>
+              {preview && (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt="Pratinjau" className="max-h-48 w-full rounded-xl object-contain bg-gray-50" />
+                  <button
+                    type="button"
+                    onClick={() => setPreview((old) => { if (old) URL.revokeObjectURL(old); return null; })}
+                    className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">

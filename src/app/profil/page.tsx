@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser, getMemberships } from "@/lib/auth";
 import { signOut } from "@/actions/auth";
 import { ProfilForm } from "@/components/features/profil-form";
+import { AvatarForm } from "@/components/features/avatar-form";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function Profil() {
   const supabase = await createClient();
   const { data: profil } = await supabase
     .from("profiles")
-    .select("nama, no_hp")
+    .select("nama, no_hp, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -54,11 +55,23 @@ export default async function Profil() {
     <div>
       <ScreenHeader title="Profil" subtitle="Akun & aktivitas" />
       <div className="space-y-4 p-4">
-        {/* Kartu profil */}
+        {/* Kartu profil + avatar */}
         <Card className="flex items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary text-xl font-bold text-white">
-            {inisial(nama)}
-          </span>
+          <div className="relative shrink-0">
+            {profil?.avatar_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={profil.avatar_url}
+                alt={nama}
+                className="h-16 w-16 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-white">
+                {inisial(nama)}
+              </span>
+            )}
+            <AvatarForm />
+          </div>
           <div className="min-w-0">
             <p className="truncate text-lg font-bold">{nama}</p>
             <p className="truncate text-xs text-muted">{user.email}</p>

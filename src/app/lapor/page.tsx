@@ -67,6 +67,10 @@ export default async function LaporList() {
                 </span>
               </div>
               <p className="text-sm text-ink/90">{r.deskripsi}</p>
+              {r.fotoUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={r.fotoUrl} alt="Foto laporan" className="w-full rounded-xl object-cover max-h-48 bg-gray-50" />
+              )}
               <p className="text-[11px] text-muted">
                 {r.pelaporNama} · {tglIndo(r.createdAt)}
                 {r.lat != null && r.lng != null && (

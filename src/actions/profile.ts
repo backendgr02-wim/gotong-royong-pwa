@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
 import { profilSchema } from "@/lib/validation";
+import { uploadAvatar } from "@/lib/storage";
 import type { ActionState } from "./auth";
 
 /**
@@ -32,4 +33,27 @@ export async function simpanProfil(_prev: ActionState, formData: FormData): Prom
   revalidatePath("/profil");
   revalidatePath("/");
   return { ok: true, message: "Profil tersimpan." };
+}
+
+/** Upload & simpan foto profil. Hapus avatar lama jika ada (upsert=true di bucket). */
+export async function simpanAvatar(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await getUser();
+  if (!user) return { error: "Harus masuk dulu." };
+
+  const file = formData.get("avatar") as File | null;
+  if (!file || file.size === 0) return { error: "Pilih file gambar." };
+
+  const result = await uploadAvatar(file, user.id);
+  if ("error" in result) return { error: result.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: result.publicUrl })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/profil");
+  revalidatePath("/");
+  return { ok: true, message: "Foto profil diperbarui." };
 }
