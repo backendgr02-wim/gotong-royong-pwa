@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ChevronRight, Building2, ShieldCheck } from "lucide-react";
+import { LogOut, ChevronRight, Building2, ShieldCheck, HandCoins } from "lucide-react";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -110,6 +110,21 @@ export default async function Profil() {
           )}
         </Card>
 
+        {/* Donasi Saya */}
+        <Link
+          href="/donasi?tab=saya"
+          className="flex items-center gap-3 rounded-2xl border border-outline p-4 active:scale-[0.99]"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+            <HandCoins size={18} />
+          </span>
+          <span className="flex-1">
+            <span className="block font-bold">Donasi Saya</span>
+            <span className="block text-xs text-muted">Riwayat donasi &amp; iuran</span>
+          </span>
+          <ChevronRight size={18} className="text-muted" />
+        </Link>
+
         {/* Keluar */}
         <form action={signOut}>
           <button
@@ -119,10 +134,6 @@ export default async function Profil() {
             <LogOut size={18} /> Keluar
           </button>
         </form>
-
-        <p className="pt-1 text-center text-xs text-muted">
-          Donasi saya, riwayat aktivitas, &amp; foto profil menyusul pada fitur berikutnya.
-        </p>
       </div>
     </div>
   );

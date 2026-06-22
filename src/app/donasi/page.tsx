@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, HandCoins, CheckCircle2, Clock, XCircle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Plus, HandCoins, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { getDonations, getDonationsSaya, getDonasiSummary, type DonasiStatus } from "@/lib/donations";
 import { verifikasiDonasi } from "@/actions/donations";

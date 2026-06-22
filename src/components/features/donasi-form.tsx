@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, HandCoins } from "lucide-react";
+import { ArrowLeft, HandCoins, Upload, X } from "lucide-react";
 import { buatDonasi } from "@/actions/donations";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,24 @@ const inputCls =
 
 export function DonasiForm({ namaKomunitas, rekening }: { namaKomunitas: string; rekening: string | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(buatDonasi, null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) { setPreview(null); setFileName(null); return; }
+    setFileName(f.name);
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result as string);
+    reader.readAsDataURL(f);
+  }
+
+  function hapusFile() {
+    setPreview(null);
+    setFileName(null);
+    const el = document.getElementById("bukti-input") as HTMLInputElement;
+    if (el) el.value = "";
+  }
 
   return (
     <div>
@@ -37,7 +55,7 @@ export function DonasiForm({ namaKomunitas, rekening }: { namaKomunitas: string;
               </span>
               <div>
                 <p className="text-xs font-semibold text-primary">Transfer ke rekening:</p>
-                <p className="font-bold">{rekening}</p>
+                <p className="font-bold text-ink">{rekening}</p>
               </div>
             </div>
           </Card>
@@ -81,16 +99,53 @@ export function DonasiForm({ namaKomunitas, rekening }: { namaKomunitas: string;
               <label htmlFor="periode" className="block text-sm font-medium">
                 Periode (untuk iuran, opsional)
               </label>
+              <input id="periode" name="periode" type="month" className={inputCls} />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="bukti-input" className="block text-sm font-medium">
+                Foto Bukti Transfer
+              </label>
+              {preview ? (
+                <div className="relative overflow-hidden rounded-2xl border border-outline">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={preview}
+                    alt="Pratinjau bukti transfer"
+                    className="max-h-48 w-full object-contain bg-gray-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={hapusFile}
+                    className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white"
+                    aria-label="Hapus file"
+                  >
+                    <X size={14} />
+                  </button>
+                  <p className="truncate px-3 py-1.5 text-xs text-muted bg-white">{fileName}</p>
+                </div>
+              ) : (
+                <label
+                  htmlFor="bukti-input"
+                  className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-outline py-6 text-muted hover:border-primary hover:text-primary transition"
+                >
+                  <Upload size={24} />
+                  <span className="text-sm font-medium">Tap untuk upload foto</span>
+                  <span className="text-[11px]">Maks 5 MB, format gambar</span>
+                </label>
+              )}
               <input
-                id="periode"
-                name="periode"
-                type="month"
-                className={inputCls}
+                id="bukti-input"
+                name="bukti"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFile}
               />
             </div>
 
             {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-            {state?.ok && <p className="text-sm text-green-600">{state.message}</p>}
 
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? "Mengirim…" : "Kirim Donasi"}

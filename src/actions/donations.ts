@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { donasiSchema, verifikasiDonasiSchema } from "@/lib/validation";
+import { uploadBuktiTransfer } from "@/lib/storage";
 import type { ActionState } from "./auth";
 
-/** Buat donasi/iuran (warga). Honeypot anti-bot via `website`. Foto bukti ditunda. */
+/** Buat donasi/iuran (warga). Honeypot anti-bot via `website`. Upload foto bukti. */
 export async function buatDonasi(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await getUser();
   if (!user) return { error: "Harus masuk dulu." };
@@ -27,6 +28,17 @@ export async function buatDonasi(_prev: ActionState, formData: FormData): Promis
   if (parsed.data.website) redirect("/donasi"); // honeypot terisi → bot
 
   const supabase = await createClient();
+
+  let buktiUrl: string | null = null;
+  const file = formData.get("bukti") as File | null;
+  if (file && file.size > 0) {
+    if (file.size > 5 * 1024 * 1024) return { error: "Ukuran foto maksimal 5 MB." };
+    if (!file.type.startsWith("image/")) return { error: "File harus berupa gambar." };
+    const result = await uploadBuktiTransfer(file, user.id);
+    if ("error" in result) return { error: result.error };
+    buktiUrl = result.signedUrl;
+  }
+
   const { error } = await supabase.from("donations").insert({
     community_id: komunitas.id,
     donatur_id: user.id,
@@ -34,6 +46,7 @@ export async function buatDonasi(_prev: ActionState, formData: FormData): Promis
     nominal: parsed.data.nominal,
     periode: parsed.data.periode || null,
     status: "menunggu",
+    bukti_url: buktiUrl,
   });
   if (error) return { error: error.message };
 
