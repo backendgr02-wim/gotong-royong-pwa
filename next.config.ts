@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  // Catatan: CSP dengan nonce + Serwist PWA + adapter @opennextjs/cloudflare ditambahkan di M7/M8.
 };
 
 export default nextConfig;
