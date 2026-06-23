@@ -1,5 +1,5 @@
 # 📒 CATATAN PEMBANGUNAN — Gotong Royong PWA
-**Engineering & Architecture Build Log** · v3 · Diperbarui: 23 Jun 2026 (sesi 16 — M8 Cloudflare Workers ✅: proxy removal, deploy live, 12 fixes cleanup)
+**Engineering & Architecture Build Log** · v4 · Diperbarui: 23 Jun 2026 (sesi 18 — search bar fix, Turnstile keys, CSP update)
 
 > Dokumen ini adalah "buku catatan insinyur" gaya perusahaan besar: status proyek, arsitektur,
 > keputusan beserta alasannya (ADR), model data & keamanan, inventaris berkas, dan **titik lanjut**
@@ -88,7 +88,10 @@
 
 - **✅ Sesi 14–15 — P3 PWA/PERF DIKODING (22 Jun 2026):** Simulasi Aladhan prayer API di test. SW cache strategy: `NetworkOnly` POST, `defaultCache` sisanya, offline fallback `/~offline`. Offline queue auto-replay via `processQueue()` saat online. Page transitions (`template.tsx` motion fade-in 250ms). Manifest modern: `display_override`, `launch_handler`, `scope`, `edge_side_panel`. Build 0 error. **Di-commit & push ke GitHub.**
 
-- **✅ Sesi 16 — M8 CLOUDFLARE WORKERS DEPLOY + 12 FIXES (23 Jun 2026):** Root cause build failure `#33d2009d` ditemukan via `kaki-tangan` → Next.js 16 proxy (`src/proxy.ts`) selalu Node.js runtime, OpenNext `build.js:66-69` hard-exit. **Proxy dihapus total.** Setup wrangler + `open-next.config.ts` + scripts. **Deploy sukses:** `gotong-royong-pwa.wimxgooo.workers.dev` 200 OK. 12 cleanup fixes: `Buffer`→`Uint8Array` (storage.ts), `ES2022` target, `loading.tsx`, `waktuJakartaKeUtc` dedup, `cn()` upgrade, manifest array purpose, `black-translucent` statusBar, File instanceof guard, emoji removal. Build + lint = 0 error 0 warning.
+- **✅ Sesi 16 — M8 CLOUDFLARE WORKERS DEPLOY + 12 FIXES (23 Jun 2026):** Root cause build failure `#33d2009d` ditemukan via `kaki-tangan` → Next.js 16 proxy (`src/proxy.ts`) selalu Node.js runtime, OpenNext `build.js:66-69` hard-exit. **Proxy dihapus total.** Setup wrangler + `open-next.config.ts` + scripts. **Deploy sukses:** `gotong-royong-pwa.wimxgooo.workers.dev` 200 OK. 12 cleanup fixes: `Buffer`→`Uint8Array` (storage.ts), `ES2022` target, `loading.tsx`, `waktuJakartaKeUtc` dedup, `cn()` upgrade, manifest array purpose, `black-translucent` statusBar, File instanceof guard, emoji removal. Build + lint = 0 error 0 warning. **Di-commit (belum push).**
+
+- **✅ Sesi 17 — PRODUCTION HARDENING + BASE44 SCAN (23 Jun 2026):** 🔐 **Rate limiting** di 13 ActionState functions (5/60s auth, 10/60s mutasi, 30/60s ringan). Env validation (`env.ts` + `assertEnv()` di RootLayout). CSP header. Custom 404 + error boundary. `noUncheckedIndexedAccess` → 4 bug fixed. 3 unused deps removed (~60KB gzip). 🔴 **Keep-alive workflow** (`.github/workflows/keep-supabase-alive.yml`) — cron 3 hari, GitHub secret `SUPABASE_ANON_KEY` set via `kaki-tangan`. 🔍 **Base44 scan** detail: `gotong-royong2.base44.app` = platform Base44 (AI no-code, $16+/bln), 8 role categories, 25+ routes — hanya 5 berfungsi. Dokumentasi: `docs/ANALISIS_BASE44.md`. Build 0 error. Commit `126aeae`. **Push ke origin branch `docs/arsitektur-c4`.**
+- **✅ Sesi 18 — SEARCH BAR FIX + TURNSTILE KEYS + CSP UPDATE (23 Jun 2026):** 🔍 **Turnstile widget** `gotong-royong-pwa` dibuat via Cloudflare dashboard (Managed mode, hostname workers.dev). **Site key** `0x4AAAAAADpwEr7baFo6wsTc` + **Secret key** `0x4AAAAAADpwEv_SkpW04Mgzja5hj3M68Zg` diekstrak → `.env.local` + `wrangler secret put` (prod). **CSP** di `next.config.ts` ditambah `challenges.cloudflare.com` (script-src, connect-src, frame-src). 🔧 **Search bar diperbaiki:** `src/app/page.tsx` — `<span>` placeholder diganti dengan `SearchClient` client component (`src/components/features/search-client.tsx`) yang render `<input type="search">` real → submit navigasi ke `/cari?q=...`. **Halaman `/cari` baru** — search di posts/events/announcements via `ilike`, grouped by tipe, empty state. `npm run build` = 0 error. **Belum di-commit.**
 
 ---
 
@@ -327,8 +330,8 @@ headers di `next.config.ts`).
 ---
 
 ## 8. STATUS BUILD & VERIFIKASI
-- `npm run build` = **0 error / 0 warning** (terakhir 22 Jun sesi 15 — P3 PWA/Perf)..
-- Route map: 18 rute dinamis (`ƒ`), 1 statis (`○` /masuk), 1 PWA offline fallback, 1 Proxy (middleware).
+- `npm run build` = **0 error / 0 warning** (terakhir 23 Jun sesi 18 — search fix + Turnstile CSP).
+- Route map: 24 rute — 23 dinamis (`ƒ` /cari baru), 1 statis (`○` /masuk), 1 PWA offline fallback.
 - Service worker: precache 39 URL (~800 kB), swFile `public/sw.js`.
 - `drizzle-kit generate` = sukses (21 tabel terbaca, DDL ter-generate).
 - ⚠️ **Hampir semua fitur belum diuji runtime** kecuali M2 auth (uji E2E 19 Jun).
@@ -336,13 +339,11 @@ headers di `next.config.ts`).
 ---
 
 ## 9. ENVIRONMENT & RAHASIA YANG DIBUTUHKAN
-Nilai asli di `.env.local` (jangan commit). Yang terisi:
+Nilai asli di `.env.local` (jangan commit). Semua terisi:
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`.
 - `SUPABASE_ACCESS_TOKEN` (PAT, exp 21 Jul 2026) — untuk CLI.
-
-Yang masih kosong (opsional, untuk fitur mendatang):
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (Web Push — M7 opsional).
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (form publik — rencana).
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` — Web Push (wrangler secret prod).
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` — Turnstile anti-bot (wrangler secret prod).
 
 > Simpan nilai asli di Bitwarden. Aturan token: least-privilege, ada expiry.
 
@@ -350,9 +351,8 @@ Yang masih kosong (opsional, untuk fitur mendatang):
 
 ## 10. ▶️ TITIK LANJUT (mulai dari sini)
 
-> **✅ STATUS 23 Jun sesi 16 — M8 CLOUDFLARE WORKERS ✅ DEPLOY LIVE:** Proxy `src/proxy.ts` dihapus (Next.js 16 proxy selalu Node.js runtime, tidak kompatibel OpenNext). Setup `@opennextjs/cloudflare` + `wrangler` + `open-next.config.ts`. Deploy sukses `gotong-royong-pwa.wimxgooo.workers.dev` (35ms startup, 53 assets).
-> **✅ 12 CLEANUP FIXES:** Buffer→Uint8Array (storage.ts), ES2022 target, loading.tsx, waktuJakartaKeUtc dedup, cn() upgrade, manifest array, statusBarStyle, File guard, emoji removal. Build 0 error, lint 0 warning.
-> **▶️ LANJUT 🔵 P5 — Admin Dashboard** (atau dokumentasi arsitektur jika diminta atasan).
+> **✅ STATUS 23 Jun sesi 18 — SEARCH BAR FIX + TURNSTILE + CSP:** Search bar berfungsi (`<input>` real → `/cari`). Turnstile widget `gotong-royong-pwa` aktif (Managed, hostname workers.dev). Semua env var terisi (Supabase, VAPID, Turnstile). CSP termasuk `challenges.cloudflare.com`. Build 0 error.
+> **▶️ BERIKUTNYA:** custom domain (beli → DNS → routes di wrangler.jsonc → push ke `main`) → deploy production stabil. Atau lanjut 🔵 P5 admin/search fitur lain.
 >
 > **✅ STATUS 19 Jun 2026:** Langkah **A** (provisioning Supabase + kunci) dan **B** (migrasi + Auth + Storage)
 > **SELESAI**. Project ref `nqlazrjcywyltewsxgmx` · URL `https://nqlazrjcywyltewsxgmx.supabase.co`. Nilai rahasia

@@ -46,6 +46,12 @@ public/swe-worker*
 # opennext / cloudflare
 .open-next/
 .dev.vars
+.wrangler/
+
+# screenshots / assets
+*.png
+*.jpg
+*.jpeg
 
 # typescript
 *.tsbuildinfo

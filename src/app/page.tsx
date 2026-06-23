@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   Bell,
   MessageSquare,
-  Search,
   TrendingUp,
   TrendingDown,
   Clock,
@@ -25,6 +24,7 @@ import { countUnread } from "@/lib/notifications";
 import { fetchPrayerTimes, sholatBerikutnya } from "@/lib/prayer";
 import { formatRupiahSingkat } from "@/lib/utils";
 import { toggleMutabaah } from "@/actions/mutabaah";
+import { SearchClient } from "@/components/features/search-client";
 
 // Halaman ber-auth & ber-data → wajib dinamis (Next 16).
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ function jamKegiatan(iso: string): string {
 export default async function Beranda() {
   const supabase = await createClient();
   const user = await getUser();
-  if (!user) redirect("/masuk?redirect=/");
+  if (!user) redirect("/pilih-peran");
 
   // --- Komunitas aktif (sumber tunggal: lib/auth) ---
   const komunitas = await getActiveCommunity();
@@ -125,10 +125,7 @@ export default async function Beranda() {
             </Link>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm text-muted">
-          <Search size={18} />
-          <span>Cari ilmu, ustadz, komunitas, warung…</span>
-        </div>
+        <SearchClient />
       </header>
 
       <div className="space-y-4 p-4">

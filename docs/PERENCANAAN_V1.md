@@ -1,12 +1,12 @@
 # 📋 PERENCANAAN V1 — Gotong Royong PWA
-**Jembatan antar sesi AI** · 22 Jun 2026 · M1–M7 ✅ selesai · M8 🟠 direncanakan · **Sesi 15: P3 PWA/Perf ✅
+**Jembatan antar sesi AI** · 23 Jun 2026 · M1–M8 ✅ · **Sesi 18: search fix + Turnstile keys + CSP
 
 > Dokumen ini adalah **peta jalan untuk sesi AI berikutnya**. Kalau kamu (AI) membaca ini,
 > berarti sesi sebelumnya menulis status proyek di sini supaya kamu bisa lanjut tanpa
 > kehilangan konteks. **Baca juga** `docs/CATATAN_PEMBANGUNAN.md` (build log),
 > `docs/PRD.md` (kebutuhan), `AGENTS.md` (aturan keras).
 >
-> **Update 22 Jun sesi 15 — P3 PWA & Performance ✅ SELESAI: SW cache strategy kustom, offline queue integration (processQueue auto-replay), page transitions (motion fade-in template.tsx), manifest modern (display_override, launch_handler). Lanjut 🟠 P4 M8 Deploy Cloudflare.
+> **Update 23 Jun sesi 18 — Search fix + Turnstile keys + CSP ✅: Search bar `<input>` real + `/cari` page. Turnstile widget keys extracted & set. CSP tambah `challenges.cloudflare.com`. Build 0 error. Lanjut custom domain atau 🔵 P5 admin.
 
 ---
 
@@ -38,7 +38,7 @@
 │   OpenNext + wrangler + deploy via kaki-tangan               │
 │                                                              │
 │ 🔵 P5 — ADMIN FEATURES (opsional, 1-2 hari)                 │
-│   Manajemen anggota, search, pagination, keep-alive, privasi │
+│   ✅ Search (done sesi 18), pagination, keep-alive ✅, privasi│
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -120,7 +120,7 @@
 - `src/components/features/network-status.tsx` — banner online/offline
 - `src/app/layout.tsx` — SerwistProvider + PWA metadata + viewport
 - `package.json` scripts: `dev` = `concurrently 'serwist build --watch' 'next dev -p 6789'`
-- `npm run build        # Build (0 error — terakhir sesi 15: 0 error)
+- `npm run build        # Build (0 error — terakhir sesi 18: 0 error)
 
 **File yang berubah (M7, BELUM di-commit):**
 ```
@@ -409,7 +409,8 @@ validation.ts     — semua schema zod (kasSchema, postSchema, dll)
 - Supabase project: `gotong-royong` (ref: `nqlazrjcywyltewsxgmx`)
 - Supabase CLI: login sebagai `backendgr02-wim`, linked
 - Git remote: `origin` → `git@github.com:backendgr02-wim/gotong-royong-pwa.git`
-- `.env.local` terisi (jangan commit)
+- `.env.local` terisi lengkap (Supabase, VAPID, Turnstile — jangan commit)
+- Turnstile secret key juga set via `wrangler secret put`
 - **M7 SUDAH di-commit & di-push** dari sesi sebelumnya
 
 ### Bug yang Ditemukan & Diperbaiki (22 Jun sesi 11–12)
@@ -421,7 +422,7 @@ validation.ts     — semua schema zod (kasSchema, postSchema, dll)
 | `Body exceeded 1 MB limit` (413) di Server Action | `next.config.ts` | Tambah `serverActions.bodySizeLimit: "4.5mb"` |
 
 ### Build
-- `npm run build` = **0 error / 0 warning** (terakhir dijalankan 22 Jun sesi 12)
+- `npm run build` = **0 error / 0 warning** (terakhir dijalankan 23 Jun sesi 18)
 - Service worker precache: 39 URL, ~800 kB
 - Lint: **0 error / 0 warning** (public/sw* di-ignore)
 
