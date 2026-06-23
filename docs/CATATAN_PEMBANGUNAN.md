@@ -1,5 +1,5 @@
 # 📒 CATATAN PEMBANGUNAN — Gotong Royong PWA
-**Engineering & Architecture Build Log** · v3 · Diperbarui: 22 Jun 2026 (sesi 13 — RESPON ATASAN: analisis kesenjangan visi vs realitas + dokumen RESPON_ATASAN.md)
+**Engineering & Architecture Build Log** · v3 · Diperbarui: 23 Jun 2026 (sesi 16 — M8 Cloudflare Workers ✅: proxy removal, deploy live, 12 fixes cleanup)
 
 > Dokumen ini adalah "buku catatan insinyur" gaya perusahaan besar: status proyek, arsitektur,
 > keputusan beserta alasannya (ADR), model data & keamanan, inventaris berkas, dan **titik lanjut**
@@ -86,6 +86,10 @@
 
 - **✅ Sesi 13 — RESPON ATASAN & analisis arsitektur (22 Jun 2026):** Atasan mengirim **Software Architecture Document (SAD)** dengan visi platform nasional: Flutter + Microservices + Kafka + AI + QRIS/BI SNAP + K8s. Dibuat `docs/RESPON_ATASAN.md` — analisis kesenjangan lengkap (4 kategori: gratis/bisa ditambah, butuh konfirmasi, butuh biaya, sudah diparkir). **Temuan kunci:** kita unggul di PWA offline, jadwal sholat, mutabaah, chain-hash kas, biaya $0. Yang kurang mayoritas dokumentasi (C4, ERD, event flow) — gratis dikerjakan. Item berbayar (AI, Flutter, QRIS, Twilio, K8s) perlu klarifikasi biaya dengan atasan. **RESPON_ATASAN.md** sudah berisi rencana tindak 30 hari dan tabel perbandingan lengkap.
 
+- **✅ Sesi 14–15 — P3 PWA/PERF DIKODING (22 Jun 2026):** Simulasi Aladhan prayer API di test. SW cache strategy: `NetworkOnly` POST, `defaultCache` sisanya, offline fallback `/~offline`. Offline queue auto-replay via `processQueue()` saat online. Page transitions (`template.tsx` motion fade-in 250ms). Manifest modern: `display_override`, `launch_handler`, `scope`, `edge_side_panel`. Build 0 error. **Di-commit & push ke GitHub.**
+
+- **✅ Sesi 16 — M8 CLOUDFLARE WORKERS DEPLOY + 12 FIXES (23 Jun 2026):** Root cause build failure `#33d2009d` ditemukan via `kaki-tangan` → Next.js 16 proxy (`src/proxy.ts`) selalu Node.js runtime, OpenNext `build.js:66-69` hard-exit. **Proxy dihapus total.** Setup wrangler + `open-next.config.ts` + scripts. **Deploy sukses:** `gotong-royong-pwa.wimxgooo.workers.dev` 200 OK. 12 cleanup fixes: `Buffer`→`Uint8Array` (storage.ts), `ES2022` target, `loading.tsx`, `waktuJakartaKeUtc` dedup, `cn()` upgrade, manifest array purpose, `black-translucent` statusBar, File instanceof guard, emoji removal. Build + lint = 0 error 0 warning.
+
 ---
 
 ## 1. RINGKASAN EKSEKUTIF & PROGRES vs RENCANA 8 MINGGU
@@ -99,11 +103,14 @@
 | **M5** Buat Aksi (Lapor/Polling/Pesan) | ✅ **UJI RUNTIME LULUS (sebagian)** | Lapor RT/RW (+GPS) loading ✅ sesi 11. Polling (buat+vote+hasil bar%) ✅ sesi 12. Notifikasi trigger ✅ (verifikasi DB) sesi 12. Lapor + donasi + avatar upload **belum diuji runtime** |
 | **M6** Donasi & Iuran + upload foto | ✅ **Upload postingan terverifikasi** | Upload foto feed ✅ sesi 12. Donasi form loading ✅ sesi 11. Avatar + lapor + donasi upload **belum diuji** |
 | **M7** PWA Offline | 🟢 **Build hijau, sudah di-commit & push** | Serwist, IndexedDB queue, offline page, manifest, icons |
+| **M8** Cloudflare Workers Deploy | 🟢 **Deploy LIVE — 23 Jun** | Proxy dihapus, OpenNext + wrangler, 12 fixes cleanup |
 | Lapisan DB (skema + RLS) lintas-fase | ✅ **100% ditulis & di-apply** | 21 tabel, 54 policy, 6 migrasi di-apply. |
 | Lapisan validasi (zod) | ✅ **100%** | Semua form punya Server Action + zod schema. |
 
 **Kesimpulan:** 🔴 P1 Uji Runtime **100% TUNTAS (22 Jun sesi 12)**. Semua fitur interaktif utama sudah terverifikasi: login magic link ✅, kas ✅, feed (teks+foto) ✅, like/komentar/hapus ✅, kegiatan+RSVP ✅, polling+vote ✅, pengumuman+notifikasi trigger ✅, logout ✅. 4 bug ditemukan & diperbaiki (hydration `NetworkStatus`, pgcrypto `digest()`, storage auth client, bodySizeLimit 413).
-**Sesi 13 (baru):** Atasan mengirim SAD enterprise — dibuat `docs/RESPON_ATASAN.md` analisis kesenjangan + rencana 30 hari. Prioritas baru = 🔴 **P0 Dokumentasi Arsitektur C4** (gambar 5 diagram + ARSITEKTUR.md) → 🟡 **P2 UX Polish** → 🟡 **P3 PWA/Perf** → 🟠 **P4 Deploy** → 🔵 **P5 Admin**.
+**P3 PWA/PERF ✅ SELESAI & DI-COMMIT (22 Jun sesi 14–15).** SW cache strategy, offline queue, page transitions, manifest modern.
+**M8 CLOUDFLARE WORKERS ✅ DEPLOY LIVE (23 Jun sesi 16).** Proxy dihapus (Node.js-only incompatible), wrangler setup, 12 fixes cleanup. Build + lint = 0/0.
+**Sesi 13:** Atasan mengirim SAD enterprise — dibuat `docs/RESPON_ATASAN.md` analisis kesenjangan + rencana 30 hari. Prioritas baru = 🔴 **P0 Dokumentasi Arsitektur C4** → 🟠 **P4 Cloudflare deploy** ✅ → 🔵 **P5 Admin**.
 Lihat `docs/PERENCANAAN_V1.md` untuk daftar TODO lengkap & urutan prioritas.
 
 ---
@@ -161,7 +168,7 @@ Lihat `docs/PERENCANAAN_V1.md` untuk daftar TODO lengkap & urutan prioritas.
 | Deploy (M8) | `@opennextjs/cloudflare` → Cloudflare Workers | — | `next-on-pages` sudah usang |
 
 > Catatan Next 16 (breaking changes yang sudah diakomodasi):
-> - **`middleware` → `proxy`** (file `src/proxy.ts`).
+> - **`middleware` → `proxy` (Next 16)** — tapi proxy selalu Node.js runtime, tidak kompatibel OpenNext Cloudflare. `src/proxy.ts` **dihapus** (sesi 16). Refresh sesi via Server Actions/Route Handlers + client-side `createBrowserClient`.
 > - **`cookies()` async** → `await cookies()` di klien server Supabase.
 > - **kunci Supabase**: pakai `publishable`/`secret` (legacy anon/service usang akhir 2026).
 > - **Turbopack default bundler** — webpack-only plugin (termasuk `withSerwistInit`) TIDAK bisa dipakai
@@ -287,8 +294,8 @@ headers di `next.config.ts`).
 `drizzle.config.ts`, `.env.local` (rahasia, jangan commit), `tsconfig.json`, `postcss.config.mjs`,
 `eslint.config.mjs`.
 
-**App routes** (`src/app/`) — 22 rute:
-- `layout.tsx` (font Plus Jakarta Sans + SerwistProvider + NetworkStatus + AppFrame), `globals.css` (token `@theme`).
+**App routes** (`src/app/`) — 23 rute:
+- `layout.tsx`, `template.tsx` (page transitions via motion) (font Plus Jakarta Sans + SerwistProvider + NetworkStatus + AppFrame), `globals.css` (token `@theme`).
 - `page.tsx` Beranda (RSC, force-dynamic, data nyata), `~offline/page.tsx` (PWA fallback offline).
 - `/masuk`, `/onboarding`, `/auth/callback/route.ts` (auth flow).
 - `/aksi`, `/komunitas` (+ `/baru`, `/[id]`), `/kegiatan` (+ `/baru`), `/pengumuman` (+ `/baru`),
@@ -312,7 +319,7 @@ headers di `next.config.ts`).
 
 **Database** (`src/db/`): `schema.ts` (21 tabel Drizzle), `migrations/0000–0006` (DDL + RLS + trigger + RPC).
 
-**Infra runtime:** `src/proxy.ts` (refresh sesi Supabase — pengganti middleware Next 16).
+**Infra runtime:** ~~`src/proxy.ts`~~ **DHAPUS** (sesi 16 — Next 16 proxy selalu Node.js runtime, tidak kompatibel OpenNext Cloudflare). Refresh sesi via Server Actions/Route Handlers + client-side `createBrowserClient`.
 
 **PWA (M7):** `serwist.config.js`, `src/app/sw.ts`, `public/manifest.json`,
 `public/icons/icon-192x192.png`, `public/icons/icon-512x512.png`.
@@ -320,7 +327,7 @@ headers di `next.config.ts`).
 ---
 
 ## 8. STATUS BUILD & VERIFIKASI
-- `npm run build` = **0 error / 0 warning** (terakhir 22 Jun sesi 10 — M7 PWA).
+- `npm run build` = **0 error / 0 warning** (terakhir 22 Jun sesi 15 — P3 PWA/Perf)..
 - Route map: 18 rute dinamis (`ƒ`), 1 statis (`○` /masuk), 1 PWA offline fallback, 1 Proxy (middleware).
 - Service worker: precache 39 URL (~800 kB), swFile `public/sw.js`.
 - `drizzle-kit generate` = sukses (21 tabel terbaca, DDL ter-generate).
@@ -343,6 +350,10 @@ Yang masih kosong (opsional, untuk fitur mendatang):
 
 ## 10. ▶️ TITIK LANJUT (mulai dari sini)
 
+> **✅ STATUS 23 Jun sesi 16 — M8 CLOUDFLARE WORKERS ✅ DEPLOY LIVE:** Proxy `src/proxy.ts` dihapus (Next.js 16 proxy selalu Node.js runtime, tidak kompatibel OpenNext). Setup `@opennextjs/cloudflare` + `wrangler` + `open-next.config.ts`. Deploy sukses `gotong-royong-pwa.wimxgooo.workers.dev` (35ms startup, 53 assets).
+> **✅ 12 CLEANUP FIXES:** Buffer→Uint8Array (storage.ts), ES2022 target, loading.tsx, waktuJakartaKeUtc dedup, cn() upgrade, manifest array, statusBarStyle, File guard, emoji removal. Build 0 error, lint 0 warning.
+> **▶️ LANJUT 🔵 P5 — Admin Dashboard** (atau dokumentasi arsitektur jika diminta atasan).
+>
 > **✅ STATUS 19 Jun 2026:** Langkah **A** (provisioning Supabase + kunci) dan **B** (migrasi + Auth + Storage)
 > **SELESAI**. Project ref `nqlazrjcywyltewsxgmx` · URL `https://nqlazrjcywyltewsxgmx.supabase.co`. Nilai rahasia
 > ada di `.env.local` (jangan commit). Langkah **C (uji login E2E) ✅ LULUS** — login→onboarding→buat

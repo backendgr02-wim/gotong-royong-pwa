@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { masukSchema } from "@/lib/validation";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 
 export type ActionState = { error?: string; message?: string; ok?: boolean } | null;
 
@@ -11,6 +12,10 @@ export type ActionState = { error?: string; message?: string; ok?: boolean } | n
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = masukSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { error: "Email tidak valid." };
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`signIn:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak percobaan. Silakan coba lagi nanti." };
 
   const h = await headers();
   const origin = h.get("origin") ?? `https://${h.get("host") ?? ""}`;

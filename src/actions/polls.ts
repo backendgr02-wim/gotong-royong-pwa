@@ -5,17 +5,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { pollSchema, voteSchema } from "@/lib/validation";
+import { waktuJakartaKeUtc } from "@/lib/utils";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
-
-/** Ubah `datetime-local` (WIB) → instant UTC ISO; null bila kosong/invalid. */
-function waktuJakartaKeUtc(local: string): string | null {
-  let m = local.trim();
-  if (m === "") return null;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(m)) m += ":00";
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(m)) return null;
-  const d = new Date(`${m}+07:00`);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
 
 /** Buat polling. HANYA pengurus (RLS `polls_write_pengurus`). */
 export async function buatPolling(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -41,6 +33,10 @@ export async function buatPolling(_prev: ActionState, formData: FormData): Promi
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Polling tidak valid." };
   }
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatPolling:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const berakhirIso = parsed.data.berakhir ? waktuJakartaKeUtc(parsed.data.berakhir) : null;
 

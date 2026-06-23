@@ -159,7 +159,7 @@ flowchart TB
     subgraph CLOUD["CLOUD — Cloudflare Workers"]
         WORKER[Next.js Server<br/>OpenNext]
         STATIC[Static Assets<br/>_next/static, public/]
-        PROXY[proxy.ts<br/>Refresh Sesi Supabase]
+        AUTH_FLOW[Server Actions + Route Handler<br/>Auth & Sesi Integrity]
     end
 
     subgraph SUPABASE["SUPABASE — Backend Serverless"]
@@ -204,7 +204,7 @@ flowchart TB
 | **Service Worker** | Serwist | Offline cache, navigation preload |
 | **IndexedDB** | idb library | Antrian aksi saat offline |
 | **Next.js Server** | OpenNext + Cloudflare Workers | Server-side rendering + Server Actions |
-| **proxy.ts** | Next 16 middleware pattern | Refresh cookie sesi Supabase |
+| ~~proxy.ts~~ (dihapus) | ~~Next 16 middleware~~ → Tidak kompatibel OpenNext | Refresh sesi via Server Actions + Route Handler + client-side auth |
 | **Postgres** | Supabase + RLS | 21 tabel, semua akses lewat RLS |
 | **Auth** | Supabase Auth | Email magic link, sesi JWT |
 | **Storage** | Supabase Storage | 4 bucket: publik & privat |

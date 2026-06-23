@@ -23,8 +23,9 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Dipanggil dari Server Component (tidak boleh set cookie) — diabaikan;
-            // proxy.ts yang akan menyegarkan sesi.
+            // Dipanggil dari Server Component (tidak boleh set cookie) — diabaikan.
+            // Refresh sesi terjadi via Server Actions & Route Handlers, atau via
+            // client-side `createBrowserClient` (auth.getSession/getUser).
           }
         },
       },

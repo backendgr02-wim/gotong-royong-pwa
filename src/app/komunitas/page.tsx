@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
 function inisial(nama: string): string {
   const p = nama.trim().split(/\s+/).filter(Boolean);
   if (p.length === 0) return "?";
-  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
-  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+  if (p.length === 1) return p[0]!.slice(0, 2).toUpperCase();
+  return (p[0]![0]! + p[p.length - 1]![0]!).toUpperCase();
 }
 
 function waktuSingkat(iso: string): string {
@@ -101,7 +101,7 @@ export default async function Komunitas() {
         ) : (
           <Card>
             <p className="text-sm text-muted">
-              Belum ada postingan. Jadilah yang pertama berbagi untuk warga 🌱
+              Belum ada postingan. Jadilah yang pertama berbagi untuk warga
             </p>
           </Card>
         )}

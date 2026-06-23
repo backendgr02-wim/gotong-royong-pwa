@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { catatKas } from "@/actions/kas";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
-/** Form pengurus mencatat satu transaksi kas (pemasukan/penyaluran). */
 export function CatatKasForm({
   defaultTanggal,
   namaKomunitas,
@@ -19,6 +20,11 @@ export function CatatKasForm({
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(catatKas, null);
   const [jenis, setJenis] = useState<"masuk" | "keluar">("masuk");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (state?.error) toast("error", state.error);
+  }, [state, toast]);
 
   return (
     <div>
@@ -39,7 +45,6 @@ export function CatatKasForm({
           <form action={action} className="space-y-4">
             <input type="hidden" name="jenis" value={jenis} />
 
-            {/* Pilih jenis */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -67,12 +72,8 @@ export function CatatKasForm({
               </button>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="nominal" className="block text-sm font-medium">
-                Nominal (Rp)
-              </label>
+            <FormField label="Nominal (Rp)">
               <input
-                id="nominal"
                 name="nominal"
                 type="number"
                 inputMode="numeric"
@@ -82,14 +83,10 @@ export function CatatKasForm({
                 placeholder="contoh: 50000"
                 className="w-full rounded-2xl border border-outline px-4 py-3 text-base outline-none focus:border-primary"
               />
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label htmlFor="keterangan" className="block text-sm font-medium">
-                Keterangan
-              </label>
+            <FormField label="Keterangan">
               <input
-                id="keterangan"
                 name="keterangan"
                 type="text"
                 required
@@ -98,29 +95,23 @@ export function CatatKasForm({
                 placeholder="contoh: Iuran warga RT 03 bulan Juni"
                 className="w-full rounded-2xl border border-outline px-4 py-3 text-base outline-none focus:border-primary"
               />
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label htmlFor="tgl" className="block text-sm font-medium">
-                Tanggal
-              </label>
+            <FormField label="Tanggal">
               <input
-                id="tgl"
                 name="tgl"
                 type="date"
                 defaultValue={defaultTanggal}
                 required
                 className="w-full rounded-2xl border border-outline px-4 py-3 text-base outline-none focus:border-primary"
               />
-            </div>
-
-            {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+            </FormField>
 
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? "Menyimpan…" : "Simpan Catatan"}
             </Button>
             <p className="text-center text-xs text-muted">
-              Setiap catatan otomatis disegel & tercatat (siapa &amp; kapan) demi transparansi.
+              Setiap catatan otomatis disegel & tercatat demi transparansi.
             </p>
           </form>
         </Card>

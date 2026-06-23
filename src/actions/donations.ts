@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { donasiSchema, verifikasiDonasiSchema } from "@/lib/validation";
 import { uploadBuktiTransfer } from "@/lib/storage";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
 
 /** Buat donasi/iuran (warga). Honeypot anti-bot via `website`. Upload foto bukti. */
@@ -26,6 +27,10 @@ export async function buatDonasi(_prev: ActionState, formData: FormData): Promis
     return { error: parsed.error.issues[0]?.message ?? "Data donasi tidak valid." };
   }
   if (parsed.data.website) redirect("/donasi"); // honeypot terisi → bot
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatDonasi:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const supabase = await createClient();
 

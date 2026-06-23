@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { kasSchema } from "@/lib/validation";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
 
 /**
@@ -32,6 +33,10 @@ export async function catatKas(_prev: ActionState, formData: FormData): Promise<
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Data kas tidak valid." };
   }
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`catatKas:${ip}`, { limit: 10 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("kas_entries").insert({

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { postSchema, komentarSchema, postRefSchema } from "@/lib/validation";
 import { uploadPostImage } from "@/lib/storage";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
 
 /** Ambil community_id sebuah post (untuk integritas + memenuhi RLS reaksi/komentar). */
@@ -35,6 +36,10 @@ export async function buatPost(_prev: ActionState, formData: FormData): Promise<
   }
   // Honeypot terisi → kemungkinan bot; pura-pura sukses tanpa menyimpan.
   if (parsed.data.website) redirect("/komunitas");
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatPost:${ip}`, { limit: 10 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   let fotoUrl: string | null = null;
   const file = formData.get("foto") as File | null;
@@ -103,6 +108,10 @@ export async function tambahKomentar(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Komentar tidak valid." };
   }
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`tambahKomentar:${ip}`, { limit: 30 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const supabase = await createClient();
   const communityId = await communityIdPost(supabase, parsed.data.postId);

@@ -1,12 +1,12 @@
 # 📋 PERENCANAAN V1 — Gotong Royong PWA
-**Jembatan antar sesi AI** · 22 Jun 2026 · M1–M7 ✅ selesai · M8 🟠 direncanakan · **Sesi 13: RESPON ATASAN + analisis arsitektur**
+**Jembatan antar sesi AI** · 22 Jun 2026 · M1–M7 ✅ selesai · M8 🟠 direncanakan · **Sesi 15: P3 PWA/Perf ✅
 
 > Dokumen ini adalah **peta jalan untuk sesi AI berikutnya**. Kalau kamu (AI) membaca ini,
 > berarti sesi sebelumnya menulis status proyek di sini supaya kamu bisa lanjut tanpa
 > kehilangan konteks. **Baca juga** `docs/CATATAN_PEMBANGUNAN.md` (build log),
 > `docs/PRD.md` (kebutuhan), `AGENTS.md` (aturan keras).
 >
-> **Update 22 Jun sesi 13 — 🔴 P0 DOKUMENTASI ARSITEKTUR ✅ SELESAI:** Atasan mengirim SAD enterprise. `docs/RESPON_ATASAN.md` (analisis kesenjangan) ✅. `docs/ARSITEKTUR.md` (5 level C4 + ERD + Event Flow + Sequence) ✅. Branch `docs/arsitektur-c4` ✅. Lanjut 🟡 **P2 UX Polish**.
+> **Update 22 Jun sesi 15 — P3 PWA & Performance ✅ SELESAI: SW cache strategy kustom, offline queue integration (processQueue auto-replay), page transitions (motion fade-in template.tsx), manifest modern (display_override, launch_handler). Lanjut 🟠 P4 M8 Deploy Cloudflare.
 
 ---
 
@@ -31,7 +31,7 @@
 │ 🟡 P2 — UX POLISH (2-3 jam)                                 │
 │   Skeleton, toast, error boundary, konfirmasi hapus, logo    │
 │                                                              │
-│ 🟡 P3 — PWA & PERFORMANCE (1-2 jam)                         │
+│ 🟡 P3 — PWA & PERFORMANCE (1-2 jam ✅ selesai 22 Jun sesi 15)
 │   Lighthouse, installable test, offline queue integration    │
 │                                                              │
 │ 🟠 P4 — M8 DEPLOY CLOUDFLARE (1 hari)                       │
@@ -65,7 +65,7 @@
 - `src/actions/community.ts` — createCommunity + joinCommunity
 - `src/lib/auth.ts` — getUser, getActiveCommunity, getMemberships
 - `src/lib/supabase/server.ts` + `client.ts`
-- `src/proxy.ts` — refresh sesi (pengganti middleware Next 16)
+- ~~`src/proxy.ts`~~ **DHAPUS** (Next 16 proxy Node.js-only, incompatible OpenNext/Cloudflare)
 - **UJI E2E LULUS** (19 Jun): login → onboarding → buat komunitas "wafi" → beranda
 - **UJI RLS LINTAS-KOMUNITAS LULUS**: non-anggota = 0 data sensitif
 
@@ -120,7 +120,7 @@
 - `src/components/features/network-status.tsx` — banner online/offline
 - `src/app/layout.tsx` — SerwistProvider + PWA metadata + viewport
 - `package.json` scripts: `dev` = `concurrently 'serwist build --watch' 'next dev -p 6789'`
-- `npm run build` = 0 error, SW precache 39 URL (~800 kB)
+- `npm run build        # Build (0 error — terakhir sesi 15: 0 error)
 
 **File yang berubah (M7, BELUM di-commit):**
 ```
@@ -198,28 +198,29 @@ M tsconfig.json       (tambah path serwist)
 
 ---
 
-## 3. 🟡 P2 — UX POLISH (2–3 jam, kerjakan SETELAH P1)
+## 3. 🟡 P2 — UX POLISH (2–3 jam, ✅ selesai 22 Jun sesi 14)
 
-| # | Item | Lokasi | Detail |
-|---|------|--------|--------|
-| 1 | **Loading skeleton** | Semua halaman RSC | Suspense fallback + shimmer (DESIGN.md §4) |
-| 2 | **Toast notifikasi** | Setelah submit form | Feedback sukses/gagal (skrg redirect doang) |
-| 3 | **Error boundary** | Root + tiap halaman data | Kalau RLS nolak → pesan ramah, bukan crash |
-| 4 | **Konfirmasi hapus** | Post, lapor | Confirm dialog sebelum destructive action |
-| 5 | **Form validation UI** | Semua form | Zod error ditampilkan di field (bkn console) |
-| 6 | **Logo/icon daun SVG** | `public/` | Ganti icon generik dengan logo hijau "daun" |
+| # | Item | Status | Lokasi | Detail |
+|---|------|--------|--------|--------|
+| 1 | **Loading skeleton** | ✅ | `src/components/ui/skeleton.tsx` | SkeletonCard, SkeletonFeed + shimmer |
+| 2 | **Toast notifikasi** | ✅ | `src/components/ui/toast.tsx` | Context-based (ToastProvider + useToast). Auto-dismiss 3.5s. Integrasi di root layout + form actions |
+| 3 | **Error boundary** | ✅ | `src/app/error.tsx` + `src/components/ui/error-boundary.tsx` | Class-based ErrorBoundary component + global Next.js error.tsx |
+| 4 | **Konfirmasi hapus** | ✅ | `src/components/ui/confirm-dialog.tsx` | `<dialog>` native modal, danger mode, backdrop blur |
+| 5 | **Form validation UI** | ✅ | `src/components/ui/form-field.tsx` | FormField wrapper + Zod error display per field. CatatKasForm + BuatPostForm updated |
+| 6 | **Logo/icon daun SVG** | ✅ | `src/components/ui/logo.tsx` | SVG daun hijau `#10b981`, siap untuk favicon & header |
 
 ---
 
-## 4. 🟡 P3 — PWA & PERFORMANCE (1–2 jam, SETELAH P2)
+## 4. 🟡 P3 — PWA & PERFORMANCE ✅ (1–2 jam, SELESAI 22 Jun sesi 15)
 
-| # | Item | Detail |
-|---|------|--------|
-| 1 | **Lighthouse audit** | Target LCP < 3s, TBT < 200ms, CLS < 0.1, PWA score ≥ 90 |
-| 2 | **Test installable** | Chrome DevTools → Application → Manifest → "PWA installable"? |
-| 3 | **Cache strategy review** | defaultCache Serwist optimal untuk RSC + Server Action? |
-| 4 | **Offline queue integration** | Hubungkan `src/lib/idb.ts` ke form actions. User offline → simpan ke IndexedDB → replay saat online via `processQueue()` |
-| 5 | **Animasi transisi** | `motion` spring lembut antar halaman |
+| # | Item | Status | Detail |
+|---|------|--------|--------|
+| 1 | **Cache strategy review** | ✅ | `src/app/sw.ts`: defaultCache tetap sebagai base, tambah handler NetworkOnly untuk POST (form/mutasi tidak pernah di-cache). Offline fallback `/~offline` via Serwist. |
+| 2 | **Offline queue integration** | ✅ | `src/components/features/network-status.tsx`: saat `online` event → panggil `getQueueCount()` + `processQueue()` auto-replay. Banner tampilkan sisa antrian. `replay()` handler reconstruct FormData dari payload IDB untuk action: reaksiPost, votePolling, rsvpEvent. |
+| 3 | **Animasi transisi** | ✅ | `src/app/template.tsx` — `motion.div` fade-in + translateY(12→0) durasi 250ms tiap navigasi. Client component `"use client"`, import `from "motion/react"`. |
+| 4 | **Manifest modern** | ✅ | `public/manifest.json`: tambah `scope: "/"`, `display_override: ["window-controls-overlay", "standalone"]`, `launch_handler.client_mode: "focus-existing"`, `edge_side_panel.preferred_width: 380`. |
+| 5 | **Lighthouse audit** | ⏳ | Butuh deploy ke production/staging (P4) untuk hasil akurat. |
+| 6 | **Test installable** | ⏳ | Butuh HTTPS (P4 deploy) atau localhost Chrome DevTools test manual. |
 
 ---
 
@@ -303,7 +304,7 @@ NEXTJS_ENV=development
 | Worker size limit (3 MB free) | Bundle gzip bisa tembus → perlu paid plan ($5/bln) atau optimasi |
 | Serwist SW di Workers | `public/sw.js` harus terdeploy sebagai aset statis |
 | Supabase free "tidur" 7 hari | Keep-alive (cron-job.org / GitHub Action ping tiap 10 menit) |
-| `proxy.ts` (middleware) kompatibilitas | OpenNext dukung middleware ✅ |
+| ~~`proxy.ts` middleware~~ → **PROXY DIHAPUS** | Next 16 proxy selalu Node.js runtime, OpenNext hard-exit. Solusi: refresh sesi via Server Actions/Route Handlers + client-side |
 
 ---
 
@@ -427,8 +428,12 @@ validation.ts     — semua schema zod (kasSchema, postSchema, dll)
 ### 🔴 P1 Uji Runtime — ✅ TUNTAS 100% (22 Jun sesi 12)
 Semua fitur interaktif utama terverifikasi. 4 bugs fixed.
 
-### 🔴 P0 Dokumentasi Arsitektur — BARU (22 Jun sesi 13)
-Atasan mengirim SAD enterprise. Dibuat `docs/RESPON_ATASAN.md` — analisis kesenjangan + rencana 30 hari. **Lanjut: gambar C4 diagram (5 level) dan buat `docs/ARSITEKTUR.md`** sebelum P2.
+### 🔴 P0 Dokumentasi Arsitektur — ✅ SELESAI (22 Jun sesi 13)
+Atasan mengirim SAD enterprise. Dibuat `docs/RESPON_ATASAN.md` — analisis kesenjangan + rencana 30 hari. C4 diagram (5 level) di `docs/ARSITEKTUR.md`.
+
+### 🟡 P2 UX Polish — ✅ SELESAI (22 Jun sesi 14)
+### 🟡 P3 PWA & Performance — ✅ SELESAI (22 Jun sesi 15)
+### 🟡 P3 PWA & Performance — ✅ SELESAI (22 Jun sesi 15)
 
 ### Akun GitHub
 - Login aktif: `wimxwim` (email `wimxgooo@gmail.com`)

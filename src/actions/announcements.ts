@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { pengumumanSchema } from "@/lib/validation";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
 
 /** Buat pengumuman. HANYA pengurus (penegak sebenarnya = RLS `announcements_write_pengurus`). */
@@ -27,6 +28,10 @@ export async function buatPengumuman(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Data pengumuman tidak valid." };
   }
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatPengumuman:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({

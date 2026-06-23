@@ -4,6 +4,8 @@ import "./globals.css";
 import { SerwistProvider } from "@serwist/next/react";
 import { AppFrame } from "@/components/layout/app-frame";
 import { NetworkStatus } from "@/components/features/network-status";
+import { ToastProvider } from "@/components/ui/toast";
+import { assertEnv } from "@/lib/env";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -20,10 +22,13 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: APP_NAME },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME },
   formatDetection: { telephone: false },
   icons: {
-    icon: [{ url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: [{ url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
   },
   openGraph: {
@@ -49,12 +54,15 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  assertEnv();
   return (
     <html lang="id" className={`${jakarta.variable} h-full antialiased`}>
       <body className="min-h-full">
         <SerwistProvider swUrl="/sw.js">
           <NetworkStatus>
-            <AppFrame>{children}</AppFrame>
+            <ToastProvider>
+              <AppFrame>{children}</AppFrame>
+            </ToastProvider>
           </NetworkStatus>
         </SerwistProvider>
       </body>

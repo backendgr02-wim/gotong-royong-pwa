@@ -107,7 +107,7 @@ export default async function Beranda() {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-white/70">
-              📍 {komunitas.kelurahan || komunitas.jenis.toUpperCase()}
+              {komunitas.kelurahan || komunitas.jenis.toUpperCase()}
             </p>
             <h1 className="text-2xl font-bold">{komunitas.nama}</h1>
           </div>
@@ -289,7 +289,7 @@ export default async function Beranda() {
         {/* Mutabaah harian (NYATA — bisa dicentang) */}
         <Card>
           <div className="flex items-center justify-between">
-            <h2 className="font-bold">Mutabaah Harian 🌱</h2>
+            <h2 className="font-bold">Mutabaah Harian</h2>
             <span className="text-xs font-semibold text-primary">
               {totalDone}/{totalItems}
             </span>

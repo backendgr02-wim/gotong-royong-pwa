@@ -5,19 +5,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { kegiatanSchema, rsvpSchema } from "@/lib/validation";
+import { waktuJakartaKeUtc } from "@/lib/utils";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
-
-/**
- * Ubah waktu dari input `datetime-local` (dianggap zona Asia/Jakarta) menjadi instant UTC (ISO).
- * Cegah salah-sinkron jam: kolom `mulai` = timestamptz; tanpa offset, Postgres bisa salah 7 jam.
- */
-function waktuJakartaKeUtc(local: string): string | null {
-  let m = local.trim();
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(m)) m += ":00";
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(m)) return null;
-  const d = new Date(`${m}+07:00`);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
 
 /** Buat kegiatan/kajian. HANYA pengurus (penegak sebenarnya = RLS `events_write_pengurus`). */
 export async function buatKegiatan(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -43,6 +33,10 @@ export async function buatKegiatan(_prev: ActionState, formData: FormData): Prom
 
   const mulaiIso = waktuJakartaKeUtc(parsed.data.mulai);
   if (!mulaiIso) return { error: "Waktu mulai tidak valid." };
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatKegiatan:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("events").insert({

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { laporSchema, laporStatusSchema } from "@/lib/validation";
 import { uploadReportImage } from "@/lib/storage";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 import type { ActionState } from "./auth";
 
 /** Buat laporan RT/RW. HANYA anggota. Lokasi GPS opsional; honeypot anti-bot via `website`. */
@@ -30,6 +31,10 @@ export async function buatLapor(_prev: ActionState, formData: FormData): Promise
     return { error: parsed.error.issues[0]?.message ?? "Laporan tidak valid." };
   }
   if (parsed.data.website) redirect("/lapor"); // honeypot terisi → bot
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`buatLapor:${ip}`, { limit: 5 }).allowed)
+    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
   let fotoUrl: string | null = null;
   const file = formData.get("foto") as File | null;

@@ -1,9 +1,21 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 /**
- * Penggabung className ringan (tanpa dependensi tambahan).
- * Bisa diganti ke clsx + tailwind-merge bila nanti pakai shadcn/ui penuh.
+ * Ubah `datetime-local` (WIB/+07:00) ke instant UTC ISO.
+ * Mengembalikan null jika kosong/invalid.
  */
-export function cn(...inputs: Array<string | false | null | undefined>): string {
-  return inputs.filter(Boolean).join(" ");
+export function waktuJakartaKeUtc(local: string): string | null {
+  let m = local.trim();
+  if (m === "") return null;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(m)) m += ":00";
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(m)) return null;
+  const d = new Date(`${m}+07:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 /** Format Rupiah singkat untuk kartu transparansi (mis. 22600000 -> "Rp 22,6 jt"). */

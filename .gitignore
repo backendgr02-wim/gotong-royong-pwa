@@ -43,6 +43,10 @@ yarn-error.log*
 public/sw*
 public/swe-worker*
 
+# opennext / cloudflare
+.open-next/
+.dev.vars
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

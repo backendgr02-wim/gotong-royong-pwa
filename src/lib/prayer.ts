@@ -52,7 +52,7 @@ export function sholatBerikutnya(
   const menitSekarang = now.getHours() * 60 + now.getMinutes();
   for (const [nama, jam] of urut) {
     const [h, m] = jam.split(":").map(Number);
-    if (h * 60 + m >= menitSekarang) return { nama, jam };
+    if (h! * 60 + m! >= menitSekarang) return { nama, jam };
   }
   return { nama: "Subuh", jam: times.Subuh }; // sudah lewat Isya → besok Subuh
 }

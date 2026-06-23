@@ -15,7 +15,7 @@ export async function uploadBuktiTransfer(
   const safeName = sanitizeFilename(`${Date.now()}_${userId.slice(0, 8)}.${ext}`);
   const filePath = `${userId}/${safeName}`;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = new Uint8Array(await file.arrayBuffer());
 
   const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
@@ -46,7 +46,7 @@ export async function uploadPostImage(
   if (file.size > 5 * 1024 * 1024) return { error: "Maksimal 5 MB." };
   if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = new Uint8Array(await file.arrayBuffer());
 
   const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
@@ -73,7 +73,7 @@ export async function uploadAvatar(
   if (file.size > 2 * 1024 * 1024) return { error: "Maksimal 2 MB." };
   if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = new Uint8Array(await file.arrayBuffer());
 
   const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
@@ -100,7 +100,7 @@ export async function uploadReportImage(
   if (file.size > 5 * 1024 * 1024) return { error: "Maksimal 5 MB." };
   if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = new Uint8Array(await file.arrayBuffer());
 
   const supabase = await createClient();
   const { error: uploadError } = await supabase.storage

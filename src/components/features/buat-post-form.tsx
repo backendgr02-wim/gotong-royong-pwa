@@ -1,16 +1,24 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, X, Upload } from "lucide-react";
 import { buatPost } from "@/actions/posts";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
+import { useToast } from "@/components/ui/toast";
 
 export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(buatPost, null);
   const [preview, setPreview] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (state?.ok) toast("success", state.message ?? "Postingan terkirim!");
+    if (state?.error) toast("error", state.error);
+  }, [state, toast]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -54,12 +62,8 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
               </label>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="isi" className="block text-sm font-medium">
-                Apa yang ingin kamu bagikan?
-              </label>
+            <FormField label="Apa yang ingin kamu bagikan?">
               <textarea
-                id="isi"
                 name="isi"
                 rows={5}
                 required
@@ -68,7 +72,7 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
                 placeholder="Tulis cerita, info, atau ajakan untuk warga…"
                 className="w-full rounded-2xl border border-outline px-4 py-3 text-base outline-none focus:border-primary"
               />
-            </div>
+            </FormField>
 
             <div className="space-y-2">
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-outline px-4 py-8 text-sm text-muted hover:border-primary hover:text-primary">
@@ -101,8 +105,6 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
                 </div>
               )}
             </div>
-
-            {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
 
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? "Mengirim…" : "Bagikan"}
