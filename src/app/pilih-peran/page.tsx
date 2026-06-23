@@ -48,7 +48,7 @@ export default function PilihPeran() {
   function lanjutkan() {
     if (selected.size === 0) return;
     localStorage.setItem("selectedRoles", JSON.stringify(Array.from(selected)));
-    router.push("/masuk");
+    router.push("/");
   }
 
   return (
