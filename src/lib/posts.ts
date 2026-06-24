@@ -59,7 +59,7 @@ export async function getFeed(
   const ids = list.map((p) => p.id);
   const namaById = await namaProfil(
     supabase,
-    list.map((p) => p.author_id).filter(Boolean) as string[],
+    list.map((p) => p.author_id).filter((x): x is string => !!x),
   );
 
   const { data: reacts } = await supabase
@@ -124,8 +124,8 @@ export async function getPost(
 
   const namaById = await namaProfil(supabase, [
     ...(p.author_id ? [p.author_id] : []),
-    ...comList.map((c) => c.profile_id).filter(Boolean),
-  ] as string[]);
+    ...comList.map((c) => c.profile_id).filter((x): x is string => !!x),
+  ]);
 
   return {
     post: {

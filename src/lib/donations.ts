@@ -3,6 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 export type DonasiStatus = "menunggu" | "terverifikasi" | "ditolak";
 export type DonasiJenis = "donasi" | "iuran";
 
+function toDonasiStatus(s: string): DonasiStatus {
+  if (s === "menunggu" || s === "terverifikasi" || s === "ditolak") return s;
+  return "menunggu";
+}
+
+function toDonasiJenis(s: string): DonasiJenis {
+  if (s === "donasi" || s === "iuran") return s;
+  return "donasi";
+}
+
 export type Donation = {
   id: string;
   donaturId: string;
@@ -37,7 +47,7 @@ export async function getDonations(communityId: string, limit = 50): Promise<Don
   const list = data ?? [];
   if (list.length === 0) return [];
 
-  const ids = [...new Set(list.map((r) => r.donatur_id).filter(Boolean))] as string[];
+  const ids = [...new Set(list.map((r) => r.donatur_id).filter((x): x is string => !!x))];
   const namaById = new Map<string, string>();
   if (ids.length) {
     const { data: profs } = await supabase.from("profiles").select("id, nama").in("id", ids);
@@ -48,10 +58,10 @@ export async function getDonations(communityId: string, limit = 50): Promise<Don
     id: r.id,
     donaturId: r.donatur_id,
     donaturNama: namaById.get(r.donatur_id) ?? "Warga",
-    jenis: r.jenis as DonasiJenis,
+    jenis: toDonasiJenis(r.jenis),
     nominal: Number(r.nominal) || 0,
     buktiUrl: r.bukti_url ?? null,
-    status: r.status as DonasiStatus,
+    status: toDonasiStatus(r.status),
     verifikatorId: r.verifikator_id ?? null,
     catatan: r.catatan ?? null,
     periode: r.periode ?? null,
@@ -73,10 +83,10 @@ export async function getDonationsSaya(userId: string): Promise<Donation[]> {
     id: r.id,
     donaturId: r.donatur_id,
     donaturNama: "",
-    jenis: r.jenis as DonasiJenis,
+    jenis: toDonasiJenis(r.jenis),
     nominal: Number(r.nominal) || 0,
     buktiUrl: r.bukti_url ?? null,
-    status: r.status as DonasiStatus,
+    status: toDonasiStatus(r.status),
     verifikatorId: r.verifikator_id ?? null,
     catatan: r.catatan ?? null,
     periode: r.periode ?? null,
@@ -84,26 +94,12 @@ export async function getDonationsSaya(userId: string): Promise<Donation[]> {
   }));
 }
 
-/** Ringkasan donasi komunitas. */
+/** Ringkasan donasi komunitas (aggregate di database, efisien). */
 export async function getDonasiSummary(communityId: string): Promise<DonasiSummary> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("donations")
-    .select("jenis, status, nominal")
-    .eq("community_id", communityId);
-
-  let totalDonasi = 0;
-  let totalIuran = 0;
-  let menunggu = 0;
-  let totalNominal = 0;
-  for (const d of data ?? []) {
-    const n = Number(d.nominal) || 0;
-    if (d.status === "menunggu") menunggu++;
-    if (d.status === "terverifikasi") {
-      totalNominal += n;
-      if (d.jenis === "donasi") totalDonasi += n;
-      else totalIuran += n;
-    }
-  }
-  return { totalDonasi, totalIuran, menunggu, totalNominal };
+  const { data } = await supabase.rpc("get_donasi_summary", {
+    community_id_param: communityId,
+  });
+  if (data) return data;
+  return { totalDonasi: 0, totalIuran: 0, menunggu: 0, totalNominal: 0 };
 }

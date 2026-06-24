@@ -47,12 +47,12 @@ export default async function DetailPost({ params }: { params: Promise<{ id: str
           <Link href="/komunitas" aria-label="Kembali" className="-ml-1 p-1">
             <ArrowLeft size={22} />
           </Link>
-          <h1 className="text-xl font-bold">Postingan</h1>
+          <h1 className="text-xl font-bold">Info Warga</h1>
         </div>
       </header>
 
       <div className="space-y-3 p-4">
-        {/* Postingan */}
+        {/* Info Warga */}
         <Card className="space-y-3">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-subtle text-sm font-bold text-primary">

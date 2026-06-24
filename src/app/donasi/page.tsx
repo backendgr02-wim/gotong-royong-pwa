@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, HandCoins, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getUser, getActiveCommunity } from "@/lib/auth";
 import { getDonations, getDonationsSaya, getDonasiSummary, type DonasiStatus } from "@/lib/donations";
-import { verifikasiDonasi } from "@/actions/donations";
+import { verifikasiDonasiAction as verifikasiDonasi } from "@/actions/donations";
 import { Card } from "@/components/ui/card";
 import { formatRupiah } from "@/lib/utils";
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -15,15 +13,6 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 
 export function GuestBeranda() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const roles = localStorage.getItem("selectedRoles");
-    if (!roles) {
-      router.replace("/pilih-peran");
-    }
-  }, [router]);
-
   return (
     <div className="flex min-h-dvh flex-col bg-white">
       <header className="rounded-b-[28px] bg-header px-4 pt-12 pb-8 text-white">
@@ -66,7 +55,7 @@ export function GuestBeranda() {
           {[
             {
               icon: TrendingUp,
-              label: "Transparansi Kas",
+              label: "Kas Komunitas",
               desc: "Catat & pantau keuangan",
             },
             {
@@ -95,19 +84,6 @@ export function GuestBeranda() {
             );
           })}
         </div>
-
-        <Card className="border border-primary/20 bg-success-subtle p-6 text-center">
-          <h3 className="font-bold">Sudah punya akun?</h3>
-          <p className="mt-1 text-sm text-muted">
-            Masuk untuk melihat data komunitasmu
-          </p>
-          <Link
-            href="/masuk"
-            className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-white active:scale-[0.97]"
-          >
-            <LogIn size={16} /> Masuk
-          </Link>
-        </Card>
       </div>
     </div>
   );

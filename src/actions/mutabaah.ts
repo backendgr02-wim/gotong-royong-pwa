@@ -16,33 +16,37 @@ function tanggalJakarta(): string {
  * RLS `mutabaah_logs`: hanya milik sendiri (profile_id = auth.uid()).
  */
 export async function toggleMutabaah(formData: FormData): Promise<void> {
-  const user = await getUser();
-  if (!user) return;
+  try {
+    const user = await getUser();
+    if (!user) return;
 
-  const parsed = toggleMutabaahSchema.safeParse({ itemId: formData.get("itemId") });
-  if (!parsed.success) return;
+    const parsed = toggleMutabaahSchema.safeParse({ itemId: formData.get("itemId") });
+    if (!parsed.success) return;
 
-  const supabase = await createClient();
-  const tanggal = tanggalJakarta();
+    const supabase = await createClient();
+    const tanggal = tanggalJakarta();
 
-  const { data: existing } = await supabase
-    .from("mutabaah_logs")
-    .select("id, done")
-    .eq("profile_id", user.id)
-    .eq("item_id", parsed.data.itemId)
-    .eq("tanggal", tanggal)
-    .maybeSingle();
+    const { data: existing } = await supabase
+      .from("mutabaah_logs")
+      .select("id, done")
+      .eq("profile_id", user.id)
+      .eq("item_id", parsed.data.itemId)
+      .eq("tanggal", tanggal)
+      .maybeSingle();
 
-  if (existing) {
-    await supabase.from("mutabaah_logs").update({ done: !existing.done }).eq("id", existing.id);
-  } else {
-    await supabase.from("mutabaah_logs").insert({
-      profile_id: user.id,
-      item_id: parsed.data.itemId,
-      tanggal,
-      done: true,
-    });
+    if (existing) {
+      await supabase.from("mutabaah_logs").update({ done: !existing.done }).eq("id", existing.id);
+    } else {
+      await supabase.from("mutabaah_logs").insert({
+        profile_id: user.id,
+        item_id: parsed.data.itemId,
+        tanggal,
+        done: true,
+      });
+    }
+
+    revalidatePath("/");
+  } catch (e) {
+    console.error("toggleMutabaah:", e);
   }
-
-  revalidatePath("/");
 }

@@ -15,6 +15,8 @@ import {
   Users,
   BarChart3,
   ArrowRight,
+  Phone,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,18 +34,20 @@ type AksiItem = {
 
 // Aksi yang sudah tersambung ke fitur nyata.
 const aktif: AksiItem[] = [
-  { label: "Catat Kas", desc: "Pemasukan / penyaluran", icon: Wallet, href: "/laporan-kas/baru", pengurusOnly: true, primary: true },
+  { label: "Catat Kas Komunitas", desc: "Pemasukan / penyaluran", icon: Wallet, href: "/laporan-kas/baru", pengurusOnly: true, primary: true },
   { label: "Buat Kegiatan", desc: "Jadwalkan kegiatan / kajian", icon: CalendarPlus, href: "/kegiatan/baru", pengurusOnly: true, primary: true },
   { label: "Buat Pengumuman", desc: "Kabar untuk warga", icon: Megaphone, href: "/pengumuman/baru", pengurusOnly: true, primary: true },
-  { label: "Buat Postingan", desc: "Bagikan cerita & ilmu", icon: PenLine, href: "/komunitas/baru", primary: true },
+  { label: "Buat Info Warga", desc: "Bagikan cerita & ilmu", icon: PenLine, href: "/komunitas/baru", primary: true },
   { label: "Lapor RT/RW", desc: "Laporkan masalah lingkungan", icon: Megaphone, href: "/lapor/baru", primary: true },
   { label: "Donasi Cepat", desc: "Sedekah untuk sesama", icon: HandCoins, href: "/donasi/baru", primary: true },
   { label: "Riwayat Donasi", desc: "Donasi & iuran saya", icon: HandCoins, href: "/donasi" },
-  { label: "Lihat Laporan Kas", desc: "Transparansi keuangan", icon: FileText, href: "/laporan-kas" },
+  { label: "Laporan Kas Komunitas", desc: "Transparansi keuangan", icon: FileText, href: "/laporan-kas" },
   { label: "Kegiatan & Kajian", desc: "Lihat & konfirmasi hadir", icon: CalendarDays, href: "/kegiatan" },
   { label: "Pengumuman", desc: "Info terbaru komunitas", icon: Megaphone, href: "/pengumuman" },
   { label: "Polling Warga", desc: "Beri suara & lihat hasil", icon: BarChart3, href: "/polling" },
-  { label: "Feed Komunitas", desc: "Lihat postingan warga", icon: Users, href: "/komunitas" },
+  { label: "Info Warga", desc: "Lihat postingan warga", icon: Users, href: "/komunitas" },
+  { label: "Warga", desc: "Direktori anggota komunitas", icon: UserCheck, href: "/anggota" },
+  { label: "Atur Kontak Penting", desc: "Kelola kontak darurat", icon: Phone, href: "/kontak/atur", pengurusOnly: true },
 ];
 
 // Belum tersambung (disambungkan per milestone berikutnya).

@@ -1,8 +1,16 @@
 import { headers } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Rate limiter hybrid: in-memory untuk dev/single-instance,
+ * dan opsi distributed via Supabase untuk serverless (Cloudflare Workers).
+ * Pilih mode via env RATE_LIMIT_DISTRIBUTED=true.
+ */
+
+// ========== In-Memory (fallback / dev) ==========
 const store = new Map<string, { count: number; resetAt: number }>();
 
-export function checkRateLimit(
+export function checkRateLimitMemory(
   key: string,
   opts: { limit?: number; windowMs?: number } = {},
 ): { allowed: boolean } {
@@ -18,6 +26,59 @@ export function checkRateLimit(
 
   entry.count++;
   return { allowed: entry.count <= limit };
+}
+
+// ========== Distributed via Supabase (serverless-safe) ==========
+export async function checkRateLimitDistributed(
+  identifier: string,
+  opts: { limit?: number; windowMs?: number } = {},
+): Promise<{ allowed: boolean; remaining: number }> {
+  const limit = opts.limit ?? 10;
+  const windowSec = Math.ceil((opts.windowMs ?? 60_000) / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const windowStart = now - windowSec;
+
+  const supabase = await createClient();
+
+  await supabase.from("rate_limits").delete().lt("created_at", windowStart);
+
+  await supabase.from("rate_limits").insert({
+    identifier,
+    window_start: windowStart,
+  });
+
+  const { count } = await supabase
+    .from("rate_limits")
+    .select("*", { count: "exact", head: true })
+    .eq("identifier", identifier)
+    .gte("created_at", windowStart);
+
+  const total = count ?? 0;
+  return {
+    allowed: total <= limit,
+    remaining: Math.max(0, limit - total),
+  };
+}
+
+// ========== Default sync wrapper (in-memory, backward compatible) ==========
+const useDistributed = process.env.RATE_LIMIT_DISTRIBUTED === "true";
+
+export function checkRateLimit(
+  key: string,
+  opts: { limit?: number; windowMs?: number } = {},
+): { allowed: boolean } {
+  return checkRateLimitMemory(key, opts);
+}
+
+export async function checkRateLimitAsync(
+  key: string,
+  opts: { limit?: number; windowMs?: number } = {},
+): Promise<{ allowed: boolean }> {
+  if (useDistributed) {
+    const result = await checkRateLimitDistributed(key, opts);
+    return { allowed: result.allowed };
+  }
+  return checkRateLimitMemory(key, opts);
 }
 
 export async function getClientIp(): Promise<string> {

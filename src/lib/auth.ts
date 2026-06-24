@@ -24,6 +24,11 @@ export async function getMemberships() {
 
 export type Peran = "warga" | "pengurus" | "dkm" | "admin";
 
+function toPeran(s: string): Peran {
+  if (s === "warga" || s === "pengurus" || s === "dkm" || s === "admin") return s;
+  return "warga";
+}
+
 export type ActiveCommunity = {
   id: string;
   nama: string;
@@ -66,6 +71,6 @@ export async function getActiveCommunity(): Promise<ActiveCommunity | null> {
     kelurahan: c.kelurahan ?? null,
     lat: c.lat ?? null,
     lng: c.lng ?? null,
-    peran: data.peran as Peran,
+    peran: toPeran(data.peran),
   };
 }

@@ -25,7 +25,7 @@ export default async function Pesan() {
 
   return (
     <div>
-      <ScreenHeader title="Pesan" subtitle="Kotak masuk notifikasi" />
+      <ScreenHeader title="Kotak Masuk" subtitle="Notifikasi & pemberitahuan" />
       <div className="space-y-3 p-4">
         {adaBelumDibaca && (
           <form action={tandaiSemuaDibaca}>

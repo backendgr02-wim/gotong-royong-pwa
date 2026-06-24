@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export type LaporanStatus = "baru" | "diproses" | "selesai";
 
+function toLaporanStatus(s: string): LaporanStatus {
+  if (s === "baru" || s === "diproses" || s === "selesai") return s;
+  return "baru";
+}
+
 export type Laporan = {
   id: string;
   kategori: string;
@@ -33,7 +38,7 @@ export async function getReports(communityId: string, limit = 50): Promise<Lapor
   const list = data ?? [];
   if (list.length === 0) return [];
 
-  const ids = [...new Set(list.map((r) => r.pelapor_id).filter(Boolean))] as string[];
+  const ids = [...new Set(list.map((r) => r.pelapor_id).filter((x): x is string => !!x))];
   const namaById = new Map<string, string>();
   if (ids.length) {
     const { data: profs } = await supabase.from("profiles").select("id, nama").in("id", ids);
@@ -47,7 +52,7 @@ export async function getReports(communityId: string, limit = 50): Promise<Lapor
     fotoUrl: r.foto_url ?? null,
     lat: r.lat ?? null,
     lng: r.lng ?? null,
-    status: r.status as LaporanStatus,
+    status: toLaporanStatus(r.status),
     pelaporId: r.pelapor_id ?? null,
     pelaporNama: (r.pelapor_id && namaById.get(r.pelapor_id)) || "Warga",
     createdAt: r.created_at,

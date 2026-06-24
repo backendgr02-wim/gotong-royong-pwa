@@ -5,12 +5,8 @@ import { useState } from "react";
 import {
   Landmark,
   Home,
-  BookOpen,
   Building2,
-  Store,
-  Sparkles,
   HeartHandshake,
-  Bike,
   ArrowRight,
 } from "lucide-react";
 
@@ -38,13 +34,6 @@ const ROLES: Role[] = [
     tags: ["Parenting", "Hafalan Anak", "Rumah Tangga"],
   },
   {
-    id: "pesantren",
-    label: "Pesantren",
-    icon: BookOpen,
-    desc: "Mengelola santri, pembelajaran, kurikulum, dan kegiatan pendidikan",
-    tags: ["Pendidikan", "Ilmu", "Kelas"],
-  },
-  {
     id: "rtrw",
     label: "RT / RW",
     icon: Building2,
@@ -52,32 +41,11 @@ const ROLES: Role[] = [
     tags: ["RT/RW", "Kerja Bakti"],
   },
   {
-    id: "umkm",
-    label: "UMKM Pasar",
-    icon: Store,
-    desc: "Menjual, membeli, dan mendukung ekonomi lokal",
-    tags: ["Pasar", "UMKM"],
-  },
-  {
-    id: "belajar",
-    label: "Belajar & Bertumbuh",
-    icon: Sparkles,
-    desc: "Pelajari ilmu baru dan amalkan dalam kehidupan sehari-hari",
-    tags: ["Kajian", "Ebook"],
-  },
-  {
     id: "donasi",
     label: "Bersedekah & Berdonasi",
     icon: HeartHandshake,
     desc: "Berpartisipasi dalam program sosial dan amal",
     tags: ["Donasi"],
-  },
-  {
-    id: "ojol",
-    label: "Pelaku Ojek Online",
-    icon: Bike,
-    desc: "Mendapatkan penghasilan melalui layanan transportasi dan pengantaran",
-    tags: ["Ojek Online"],
   },
 ];
 

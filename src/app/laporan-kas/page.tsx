@@ -45,7 +45,7 @@ export default async function LaporanKas({
   const entries = await getKasEntries(komunitas.id, { bulan: filterBulan });
 
   // Nama pencatat (RLS profiles: sesama anggota komunitas boleh dibaca).
-  const ids = [...new Set(entries.map((e) => e.dibuatOleh).filter(Boolean))] as string[];
+  const ids = [...new Set(entries.map((e) => e.dibuatOleh).filter((x): x is string => !!x))];
   const namaById = new Map<string, string>();
   if (ids.length) {
     const supabase = await createClient();
@@ -66,7 +66,7 @@ export default async function LaporanKas({
             </Link>
             <div>
               <p className="text-xs text-white/70">{komunitas.nama}</p>
-              <h1 className="text-xl font-bold">Laporan Kas</h1>
+              <h1 className="text-xl font-bold">Laporan Kas Komunitas</h1>
             </div>
           </div>
           <PrintButton className="no-print h-10 bg-white/15 px-3 text-white hover:bg-white/25" />
@@ -105,7 +105,7 @@ export default async function LaporanKas({
         {isPengurus && (
           <Link href="/laporan-kas/baru" className="no-print block">
             <div className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-sm active:scale-[0.99]">
-              <Plus size={18} /> Catat Kas
+              <Plus size={18} /> Catat Kas Komunitas
             </div>
           </Link>
         )}

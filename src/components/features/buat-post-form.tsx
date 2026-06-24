@@ -16,7 +16,7 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (state?.ok) toast("success", state.message ?? "Postingan terkirim!");
+    if (state?.ok) toast("success", state.message ?? "Info terkirim!");
     if (state?.error) toast("error", state.error);
   }, [state, toast]);
 
@@ -47,7 +47,7 @@ export function BuatPostForm({ namaKomunitas }: { namaKomunitas: string }) {
           </Link>
           <div>
             <p className="text-xs text-white/70">{namaKomunitas}</p>
-            <h1 className="text-xl font-bold">Buat Postingan</h1>
+            <h1 className="text-xl font-bold">Buat Info</h1>
           </div>
         </div>
       </header>

@@ -107,7 +107,7 @@ export default async function CariPage({
       {posts.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-            <FileText size={14} /> Postingan
+            <FileText size={14} /> Info Warga
           </h2>
           <div className="space-y-2">
             {posts.map((p) => (

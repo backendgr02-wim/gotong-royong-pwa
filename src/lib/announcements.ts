@@ -49,8 +49,9 @@ export async function getPinnedAnnouncement(communityId: string): Promise<Announ
     .eq("pinned", true)
     .order("created_at", { ascending: false })
     .limit(1)
+    .returns<Row>()
     .maybeSingle();
-  return data ? mapRow(data as Row) : null;
+  return data ? mapRow(data) : null;
 }
 
 /** Semua pengumuman (yang ter-pin di atas, lalu terbaru). */
@@ -62,6 +63,7 @@ export async function getAnnouncements(communityId: string, limit = 50): Promise
     .eq("community_id", communityId)
     .order("pinned", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []).map((d) => mapRow(d as Row));
+    .limit(limit)
+    .returns<Row[]>();
+  return (data ?? []).map((d) => mapRow(d));
 }

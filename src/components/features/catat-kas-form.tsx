@@ -35,7 +35,7 @@ export function CatatKasForm({
           </Link>
           <div>
             <p className="text-xs text-white/70">{namaKomunitas}</p>
-            <h1 className="text-xl font-bold">Catat Kas</h1>
+            <h1 className="text-xl font-bold">Catat Kas Komunitas</h1>
           </div>
         </div>
       </header>

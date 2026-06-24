@@ -10,41 +10,47 @@ import type { ActionState } from "./auth";
 
 /** Buat pengumuman. HANYA pengurus (penegak sebenarnya = RLS `announcements_write_pengurus`). */
 export async function buatPengumuman(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await getUser();
-  if (!user) return { error: "Harus masuk dulu." };
+  try {
+    const user = await getUser();
+    if (!user) return { error: "Harus masuk dulu." };
 
-  const komunitas = await getActiveCommunity();
-  if (!komunitas) return { error: "Komunitas aktif tidak ditemukan." };
-  if (komunitas.peran === "warga") {
-    return { error: "Hanya pengurus yang boleh membuat pengumuman." };
+    const komunitas = await getActiveCommunity();
+    if (!komunitas) return { error: "Komunitas aktif tidak ditemukan." };
+    if (komunitas.peran === "warga") {
+      return { error: "Hanya pengurus yang boleh membuat pengumuman." };
+    }
+
+    const parsed = pengumumanSchema.safeParse({
+      judul: formData.get("judul"),
+      isi: formData.get("isi"),
+      pinned: formData.get("pinned") ?? false,
+      fotoUrl: formData.get("fotoUrl") ?? "",
+    });
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "Data pengumuman tidak valid." };
+    }
+
+    const ip = await getClientIp();
+    if (!checkRateLimit(`buatPengumuman:${ip}`, { limit: 5 }).allowed)
+      return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
+
+    const supabase = await createClient();
+    const { error } = await supabase.from("announcements").insert({
+      community_id: komunitas.id,
+      judul: parsed.data.judul,
+      isi: parsed.data.isi,
+      pinned: parsed.data.pinned,
+      foto_url: parsed.data.fotoUrl || null,
+      author_id: user.id,
+    });
+    if (error) return { error: error.message };
+
+    revalidatePath("/pengumuman");
+    revalidatePath("/");
+    redirect("/pengumuman");
+  } catch (e) {
+    if (e instanceof Error && "digest" in e) throw e;
+    console.error("buatPengumuman:", e);
+    return { error: "Terjadi kesalahan. Silakan coba lagi." };
   }
-
-  const parsed = pengumumanSchema.safeParse({
-    judul: formData.get("judul"),
-    isi: formData.get("isi"),
-    pinned: formData.get("pinned") ?? false,
-    fotoUrl: formData.get("fotoUrl") ?? "",
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Data pengumuman tidak valid." };
-  }
-
-  const ip = await getClientIp();
-  if (!checkRateLimit(`buatPengumuman:${ip}`, { limit: 5 }).allowed)
-    return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("announcements").insert({
-    community_id: komunitas.id,
-    judul: parsed.data.judul,
-    isi: parsed.data.isi,
-    pinned: parsed.data.pinned,
-    foto_url: parsed.data.fotoUrl || null,
-    author_id: user.id,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePath("/pengumuman");
-  revalidatePath("/");
-  redirect("/pengumuman");
 }

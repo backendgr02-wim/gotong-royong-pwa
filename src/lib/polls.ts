@@ -48,7 +48,7 @@ export async function getPolls(communityId: string, userId?: string, limit = 30)
 
   const now = Date.now();
   return list.map((p) => {
-    const opsi = (Array.isArray(p.opsi) ? p.opsi : []) as string[];
+    const opsi: string[] = Array.isArray(p.opsi) ? p.opsi : [];
     const agg = byPoll.get(p.id)!;
     return {
       id: p.id,
