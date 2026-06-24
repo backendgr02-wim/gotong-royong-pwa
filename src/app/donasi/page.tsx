@@ -45,7 +45,7 @@ export default async function DonasiPage({ searchParams }: { searchParams: Promi
   if (isPengurus && tab === "semua") {
     donations = await getDonations(komunitas.id);
   } else {
-    donations = await getDonationsSaya(user.id);
+    donations = await getDonationsSaya(user.id, komunitas.id);
   }
 
   return (

@@ -46,7 +46,7 @@ export async function getKasSummary(communityId: string): Promise<KasSummary> {
 
   const { count } = await supabase
     .from("kas_entries")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("community_id", communityId);
 
   const updateTerakhir = maxRow?.[0]?.tgl ?? null;

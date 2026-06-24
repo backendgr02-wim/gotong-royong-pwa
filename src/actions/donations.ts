@@ -35,7 +35,7 @@ export async function buatDonasi(_prev: ActionState, formData: FormData): Promis
     if (parsed.data.website) redirect("/donasi");
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatDonasi:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`buatDonasi:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
@@ -78,7 +78,7 @@ export async function verifikasiDonasi(
     if (!user) return { error: "Harus masuk dulu." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`verifikasiDonasi:${ip}`, { limit: 10 }).allowed)
+    if (!(await checkRateLimit(`verifikasiDonasi:${ip ?? "unknown"}`, { limit: 10 })).allowed)
       return { error: "Terlalu banyak permintaan." };
 
     const parsed = verifikasiDonasiSchema.safeParse({

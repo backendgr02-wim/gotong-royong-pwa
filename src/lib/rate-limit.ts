@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // ========== In-Memory (fallback / dev) ==========
 const store = new Map<string, { count: number; resetAt: number }>();
+let cleanupCounter = 0;
 
 export function checkRateLimitMemory(
   key: string,
@@ -18,6 +19,14 @@ export function checkRateLimitMemory(
   const windowMs = opts.windowMs ?? 60_000;
   const now = Date.now();
   const entry = store.get(key);
+
+  cleanupCounter++;
+  if (cleanupCounter % 100 === 0) {
+    const cutoff = now - 120_000;
+    for (const [k, v] of store) {
+      if (v.resetAt < cutoff) store.delete(k);
+    }
+  }
 
   if (!entry || now > entry.resetAt) {
     store.set(key, { count: 1, resetAt: now + windowMs });
@@ -49,7 +58,7 @@ export async function checkRateLimitDistributed(
 
   const { count } = await supabase
     .from("rate_limits")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("identifier", identifier)
     .gte("created_at", windowStart);
 
@@ -60,17 +69,10 @@ export async function checkRateLimitDistributed(
   };
 }
 
-// ========== Default sync wrapper (in-memory, backward compatible) ==========
+// ========== Default async wrapper (distributed via Supabase jika tersedia, fallback in-memory) ==========
 const useDistributed = process.env.RATE_LIMIT_DISTRIBUTED === "true";
 
-export function checkRateLimit(
-  key: string,
-  opts: { limit?: number; windowMs?: number } = {},
-): { allowed: boolean } {
-  return checkRateLimitMemory(key, opts);
-}
-
-export async function checkRateLimitAsync(
+export async function checkRateLimit(
   key: string,
   opts: { limit?: number; windowMs?: number } = {},
 ): Promise<{ allowed: boolean }> {
@@ -81,11 +83,11 @@ export async function checkRateLimitAsync(
   return checkRateLimitMemory(key, opts);
 }
 
-export async function getClientIp(): Promise<string> {
+export async function getClientIp(): Promise<string | null> {
   const h = await headers();
   return (
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     h.get("x-real-ip") ??
-    "127.0.0.1"
+    null
   );
 }

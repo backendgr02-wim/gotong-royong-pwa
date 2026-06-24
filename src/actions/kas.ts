@@ -36,7 +36,7 @@ export async function catatKas(_prev: ActionState, formData: FormData): Promise<
     }
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`catatKas:${ip}`, { limit: 10 }).allowed)
+    if (!(await checkRateLimit(`catatKas:${ip ?? "unknown"}`, { limit: 10 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();

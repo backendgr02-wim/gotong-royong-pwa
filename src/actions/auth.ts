@@ -17,7 +17,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
     if (!parsed.success) return { error: "Email tidak valid." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`signIn:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`signIn:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak percobaan. Silakan coba lagi nanti." };
 
     const h = await headers();
@@ -41,7 +41,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
 export async function signInWithGoogle(): Promise<ActionState> {
   try {
     const ip = await getClientIp();
-    if (!checkRateLimit(`signInGoogle:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`signInGoogle:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak percobaan. Silakan coba lagi nanti." };
 
     const h = await headers();

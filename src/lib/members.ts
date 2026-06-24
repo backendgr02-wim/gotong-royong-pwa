@@ -8,12 +8,6 @@ export type Member = {
   avatarUrl: string | null;
 };
 
-type MembershipRow = {
-  id: string;
-  peran: string;
-  profile: { id: string; nama: string; no_hp: string | null; avatar_url: string | null } | null;
-};
-
 /**
  * Daftar anggota aktif suatu komunitas.
  * Join memberships → profiles untuk mendapatkan nama & kontak.
@@ -34,11 +28,14 @@ export async function getMembers(communityId: string): Promise<Member[]> {
 
   if (!data) return [];
 
-  return (data as unknown as MembershipRow[]).map((m) => ({
-    id: m.id,
-    nama: m.profile?.nama ?? "Tanpa Nama",
-    peran: m.peran,
-    noHp: m.profile?.no_hp ?? null,
-    avatarUrl: m.profile?.avatar_url ?? null,
-  }));
+  return data.map((m: Record<string, unknown>) => {
+    const profile = m.profile as Record<string, unknown> | null;
+    return {
+      id: m.id as string,
+      nama: (profile?.nama as string) ?? "Tanpa Nama",
+      peran: m.peran as string,
+      noHp: (profile?.no_hp as string) ?? null,
+      avatarUrl: (profile?.avatar_url as string) ?? null,
+    };
+  });
 }

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 const MAGIC_BYTES: Record<string, Uint8Array[]> = {
   "image/jpeg": [new Uint8Array([0xFF, 0xD8, 0xFF])],
   "image/png":  [new Uint8Array([0x89, 0x50, 0x4E, 0x47])],
-  "image/webp": [new Uint8Array([0x52, 0x49, 0x46, 0x46])],
+  "image/webp": [new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50])],
   "image/gif":  [new Uint8Array([0x47, 0x49, 0x46, 0x38])],
   "image/avif": [new Uint8Array([0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66])],
 };
@@ -11,9 +11,13 @@ const MAGIC_BYTES: Record<string, Uint8Array[]> = {
 export function validateImageMagicBytes(buffer: Uint8Array, mimeType: string): boolean {
   const signatures = MAGIC_BYTES[mimeType];
   if (!signatures) return false;
-  return signatures.some(sig =>
-    sig.every((byte, i) => buffer[i] === byte)
-  );
+  return signatures.some(sig => {
+    if (buffer.length < sig.length) return false;
+    return sig.every((byte, i) => {
+      if (sig[4] === 0x00 && sig[5] === 0x00 && sig[6] === 0x00 && sig[7] === 0x00 && i >= 4 && i <= 7) return true;
+      return buffer[i] === byte;
+    });
+  });
 }
 
 function sanitizeFilename(name: string): string {

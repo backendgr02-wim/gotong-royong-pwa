@@ -32,7 +32,7 @@ export async function buatPolling(_prev: ActionState, formData: FormData): Promi
     }
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatPolling:${ip}`, { limit: 3 }).allowed)
+    if (!(await checkRateLimit(`buatPolling:${ip ?? "unknown"}`, { limit: 3 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
@@ -56,8 +56,7 @@ export async function buatPolling(_prev: ActionState, formData: FormData): Promi
 }
 
 /**
- * Vote satu pilihan di polling. Idempoten — vote ulang ganti pilihan (RLS `poll_votes`).
- * Dipakai sebagai `<form action={vote}>`.
+ * Vote satu pilihan di polling. Idempoten — upsert dengan unique constraint cegah duplikat.
  */
 export async function vote(formData: FormData): Promise<void> {
   try {
@@ -79,7 +78,7 @@ export async function vote(formData: FormData): Promise<void> {
       .maybeSingle();
     if (!poll) return;
 
-    await supabase.from("poll_votes").upsert(
+    const { error } = await supabase.from("poll_votes").upsert(
       {
         poll_id: parsed.data.pollId,
         community_id: poll.community_id,
@@ -88,6 +87,10 @@ export async function vote(formData: FormData): Promise<void> {
       },
       { onConflict: "poll_votes_uniq" },
     );
+    if (error) {
+      console.error("vote:", error.message);
+      return;
+    }
 
     revalidatePath("/polling");
   } catch (e) {

@@ -16,7 +16,11 @@ export async function tandaiDibaca(formData: FormData): Promise<void> {
     if (typeof notifId !== "string" || !notifId) return;
 
     const supabase = await createClient();
-    await supabase.from("notifications").update({ dibaca: true }).eq("id", notifId);
+    const { error } = await supabase.from("notifications").update({ dibaca: true }).eq("id", notifId);
+    if (error) {
+      console.error("tandaiDibaca:", error.message);
+      return;
+    }
     revalidatePath("/pesan");
   } catch (e) {
     console.error("tandaiDibaca:", e);
@@ -32,7 +36,15 @@ export async function tandaiSemuaDibaca(): Promise<void> {
     if (!user) return;
 
     const supabase = await createClient();
-    await supabase.from("notifications").update({ dibaca: true }).eq("profile_id", user.id).is("dibaca", false);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ dibaca: true })
+      .eq("profile_id", user.id)
+      .is("dibaca", false);
+    if (error) {
+      console.error("tandaiSemuaDibaca:", error.message);
+      return;
+    }
     revalidatePath("/pesan");
   } catch (e) {
     console.error("tandaiSemuaDibaca:", e);

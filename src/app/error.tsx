@@ -14,7 +14,7 @@ export default function GlobalError({
       <span className="text-5xl">⚠️</span>
       <h1 className="text-xl font-bold text-ink">Gagal memuat halaman</h1>
       <p className="max-w-xs text-sm text-muted">
-        {error.message || "Coba refresh atau kembali nanti."}
+        Coba refresh atau kembali nanti.
       </p>
       <div className="flex gap-3">
         <Button variant="outline" onClick={() => window.history.back()}>

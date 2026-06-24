@@ -36,28 +36,29 @@ export default async function CariPage({
     );
   }
 
-  const query = q.trim();
+  const query = q.trim().slice(0, 200);
+  const safe = query.replace(/[%_\\]/g, "\\$&");
 
   const [postRes, eventRes, pengumumanRes] = await Promise.all([
     supabase
       .from("posts")
       .select("id, judul, konten, created_at")
       .eq("community_id", komunitas.id)
-      .or(`judul.ilike.%${query}%,konten.ilike.%${query}%`)
+      .or(`judul.ilike.%${safe}%,konten.ilike.%${safe}%`)
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
       .from("events")
       .select("id, title, tanggal_mulai, lokasi")
       .eq("community_id", komunitas.id)
-      .or(`title.ilike.%${query}%,deskripsi.ilike.%${query}%`)
+      .or(`title.ilike.%${safe}%,deskripsi.ilike.%${safe}%`)
       .order("tanggal_mulai", { ascending: false })
       .limit(10),
     supabase
       .from("announcements")
       .select("id, judul, isi, created_at")
       .eq("community_id", komunitas.id)
-      .or(`judul.ilike.%${query}%,isi.ilike.%${query}%`)
+      .or(`judul.ilike.%${safe}%,isi.ilike.%${safe}%`)
       .order("created_at", { ascending: false })
       .limit(10),
   ]);

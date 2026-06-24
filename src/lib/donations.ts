@@ -69,13 +69,14 @@ export async function getDonations(communityId: string, limit = 50): Promise<Don
   }));
 }
 
-/** Donasi milik user sendiri. */
-export async function getDonationsSaya(userId: string): Promise<Donation[]> {
+/** Donasi milik user sendiri dalam komunitas tertentu. */
+export async function getDonationsSaya(userId: string, communityId: string): Promise<Donation[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("donations")
     .select("id, donatur_id, jenis, nominal, bukti_url, status, verifikator_id, catatan, periode, created_at")
     .eq("donatur_id", userId)
+    .eq("community_id", communityId)
     .order("created_at", { ascending: false })
     .limit(50);
 

@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
           {this.props.label ?? "Terjadi kendala"}
         </h2>
         <p className="max-w-xs text-sm text-muted">
-          {this.state.error?.message ?? "Halaman tidak bisa dimuat. Coba refresh."}
+          Halaman tidak bisa dimuat. Coba refresh.
         </p>
         <Button
           variant="outline"

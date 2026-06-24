@@ -30,7 +30,7 @@ export async function tambahKontak(_prev: ActionState, formData: FormData): Prom
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`tambahKontak:${ip}`, { limit: 20 }).allowed)
+    if (!(await checkRateLimit(`tambahKontak:${ip ?? "unknown"}`, { limit: 20 })).allowed)
       return { error: "Terlalu banyak permintaan." };
 
     const supabase = await createClient();
@@ -56,13 +56,18 @@ export async function hapusKontak(formData: FormData): Promise<void> {
     if (!user) return;
 
     const komunitas = await getActiveCommunity();
-    if (!komunitas || komunitas.peran === "warga") return;
+    if (!komunitas) return;
+    if (komunitas.peran === "warga") return;
 
     const id = formData.get("id");
     if (typeof id !== "string") return;
 
     const supabase = await createClient();
-    await supabase.from("contacts").delete().eq("id", id).eq("community_id", komunitas.id);
+    const { error } = await supabase.from("contacts").delete().eq("id", id).eq("community_id", komunitas.id);
+    if (error) {
+      console.error("hapusKontak:", error.message);
+      return;
+    }
     revalidatePath("/kontak/atur");
   } catch (e) {
     console.error("hapusKontak:", e);

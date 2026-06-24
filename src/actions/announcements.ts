@@ -31,7 +31,7 @@ export async function buatPengumuman(_prev: ActionState, formData: FormData): Pr
     }
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatPengumuman:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`buatPengumuman:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();

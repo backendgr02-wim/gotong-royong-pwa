@@ -12,8 +12,6 @@ function tanggalJakarta(): string {
 
 /**
  * Centang/hapus-centang satu item mutabaah untuk HARI INI (per pengguna).
- * Dipakai langsung sebagai `<form action={toggleMutabaah}>` di Beranda.
- * RLS `mutabaah_logs`: hanya milik sendiri (profile_id = auth.uid()).
  */
 export async function toggleMutabaah(formData: FormData): Promise<void> {
   try {
@@ -35,14 +33,22 @@ export async function toggleMutabaah(formData: FormData): Promise<void> {
       .maybeSingle();
 
     if (existing) {
-      await supabase.from("mutabaah_logs").update({ done: !existing.done }).eq("id", existing.id);
+      const { error } = await supabase
+        .from("mutabaah_logs")
+        .update({ done: !existing.done })
+        .eq("id", existing.id);
+      if (error) {
+        console.error("toggleMutabaah update:", error.message);
+        return;
+      }
     } else {
-      await supabase.from("mutabaah_logs").insert({
-        profile_id: user.id,
-        item_id: parsed.data.itemId,
-        tanggal,
-        done: true,
-      });
+      const { error } = await supabase
+        .from("mutabaah_logs")
+        .insert({ profile_id: user.id, item_id: parsed.data.itemId, tanggal, done: true });
+      if (error) {
+        console.error("toggleMutabaah insert:", error.message);
+        return;
+      }
     }
 
     revalidatePath("/");

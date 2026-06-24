@@ -42,11 +42,11 @@ export default async function Profil() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const rawMemberships = (await getMemberships()) as unknown as Membership[];
-  const memberships = rawMemberships.map((m) => ({
-    ...m,
-    community: Array.isArray(m.community) ? m.community[0] : m.community,
-  }));
+  const rawMemberships = await getMemberships();
+  const memberships = rawMemberships.map((m) => {
+    const community = Array.isArray(m.community) ? m.community[0] : m.community;
+    return { ...m, community };
+  });
 
   const nama = profil?.nama || user.email?.split("@")[0] || "Warga";
   const peranUtama = memberships[0]?.peran;

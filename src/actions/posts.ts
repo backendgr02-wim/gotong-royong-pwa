@@ -31,7 +31,7 @@ export async function buatPost(_prev: ActionState, formData: FormData): Promise<
     if (parsed.data.website) redirect("/");
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatPost:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`buatPost:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
@@ -63,7 +63,7 @@ export async function buatPost(_prev: ActionState, formData: FormData): Promise<
 }
 
 /**
- * Toggle suka pada post (RLS mencegah duplikat per user per post).
+ * Toggle suka pada post (atomic DELETE-then-INSERT, cegah race condition).
  */
 export async function toggleSuka(formData: FormData): Promise<void> {
   try {
@@ -81,23 +81,25 @@ export async function toggleSuka(formData: FormData): Promise<void> {
       .maybeSingle();
     if (!post) return;
 
-    const { data: existing } = await supabase
+    const { data: deleted } = await supabase
       .from("post_reactions")
-      .select("id")
+      .delete()
       .eq("post_id", postId)
       .eq("profile_id", user.id)
       .eq("jenis", "suka")
-      .maybeSingle();
+      .select("id");
 
-    if (existing) {
-      await supabase.from("post_reactions").delete().eq("id", existing.id);
-    } else {
-      await supabase.from("post_reactions").insert({
+    if (!deleted || deleted.length === 0) {
+      const { error } = await supabase.from("post_reactions").insert({
         post_id: postId,
         community_id: post.community_id,
         profile_id: user.id,
         jenis: "suka",
       });
+      if (error) {
+        console.error("toggleSuka insert:", error.message);
+        return;
+      }
     }
 
     revalidatePath("/");
@@ -157,7 +159,11 @@ export async function hapusPost(formData: FormData): Promise<void> {
     if (typeof postId !== "string" || !postId) return;
 
     const supabase = await createClient();
-    await supabase.from("posts").delete().eq("id", postId);
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      console.error("hapusPost:", error.message);
+      return;
+    }
 
     revalidatePath("/");
   } catch (e) {

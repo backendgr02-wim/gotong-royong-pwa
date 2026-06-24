@@ -35,7 +35,7 @@ export async function buatLapor(_prev: ActionState, formData: FormData): Promise
     if (parsed.data.website) redirect("/lapor");
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatLapor:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`buatLapor:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
@@ -71,12 +71,14 @@ export async function buatLapor(_prev: ActionState, formData: FormData): Promise
 
 /**
  * Ubah status laporan (diproses/selesai/ditolak). HANYA pengurus.
- * Dipakai sebagai `<form action={ubahStatusLapor}>`.
  */
 export async function ubahStatusLapor(formData: FormData): Promise<void> {
   try {
     const user = await getUser();
     if (!user) return;
+
+    const komunitas = await getActiveCommunity();
+    if (!komunitas || komunitas.peran === "warga") return;
 
     const parsed = laporStatusSchema.safeParse({
       reportId: formData.get("reportId"),
@@ -85,10 +87,14 @@ export async function ubahStatusLapor(formData: FormData): Promise<void> {
     if (!parsed.success) return;
 
     const supabase = await createClient();
-    await supabase
+    const { error } = await supabase
       .from("reports")
       .update({ status: parsed.data.status })
       .eq("id", parsed.data.reportId);
+    if (error) {
+      console.error("ubahStatusLapor:", error.message);
+      return;
+    }
 
     revalidatePath("/lapor");
   } catch (e) {

@@ -36,7 +36,7 @@ export async function buatKegiatan(_prev: ActionState, formData: FormData): Prom
     if (!mulaiIso) return { error: "Waktu mulai tidak valid." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`buatKegiatan:${ip}`, { limit: 5 }).allowed)
+    if (!(await checkRateLimit(`buatKegiatan:${ip ?? "unknown"}`, { limit: 5 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
@@ -62,8 +62,7 @@ export async function buatKegiatan(_prev: ActionState, formData: FormData): Prom
 }
 
 /**
- * Toggle kehadiran (RSVP) sebuah kegiatan. Dipakai sebagai `<form action={toggleRsvp}>`.
- * RLS `event_rsvp` memastikan hanya anggota & hanya RSVP milik sendiri.
+ * Toggle kehadiran (RSVP) sebuah kegiatan (atomic DELETE-then-INSERT, cegah race condition).
  */
 export async function toggleRsvp(formData: FormData): Promise<void> {
   try {
@@ -81,21 +80,23 @@ export async function toggleRsvp(formData: FormData): Promise<void> {
       .maybeSingle();
     if (!ev) return;
 
-    const { data: existing } = await supabase
+    const { data: deleted } = await supabase
       .from("event_rsvp")
-      .select("id")
+      .delete()
       .eq("event_id", parsed.data.eventId)
       .eq("profile_id", user.id)
-      .maybeSingle();
+      .select("id");
 
-    if (existing) {
-      await supabase.from("event_rsvp").delete().eq("id", existing.id);
-    } else {
-      await supabase.from("event_rsvp").insert({
+    if (!deleted || deleted.length === 0) {
+      const { error } = await supabase.from("event_rsvp").insert({
         event_id: parsed.data.eventId,
         community_id: ev.community_id,
         profile_id: user.id,
       });
+      if (error) {
+        console.error("toggleRsvp insert:", error.message);
+        return;
+      }
     }
 
     revalidatePath("/kegiatan");

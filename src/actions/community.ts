@@ -30,11 +30,11 @@ export async function createCommunity(_prev: ActionState, formData: FormData): P
     if (!parsed.success) return { error: "Data komunitas tidak valid." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`createCommunity:${ip}`, { limit: 3 }).allowed)
+    if (!(await checkRateLimit(`createCommunity:${ip ?? "unknown"}`, { limit: 3 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
-    const slug = `${slugify(parsed.data.nama)}-${Math.random().toString(36).slice(2, 6)}`;
+    const slug = `${slugify(parsed.data.nama)}-${crypto.randomUUID().slice(0, 6)}`;
     const { error } = await supabase.from("communities").insert({
       nama: parsed.data.nama,
       jenis: parsed.data.jenis,
@@ -62,7 +62,7 @@ export async function joinCommunity(_prev: ActionState, formData: FormData): Pro
     if (!parsed.success) return { error: "Komunitas tidak valid." };
 
     const ip = await getClientIp();
-    if (!checkRateLimit(`joinCommunity:${ip}`, { limit: 10 }).allowed)
+    if (!(await checkRateLimit(`joinCommunity:${ip ?? "unknown"}`, { limit: 10 })).allowed)
       return { error: "Terlalu banyak permintaan. Silakan coba lagi nanti." };
 
     const supabase = await createClient();
