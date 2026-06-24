@@ -1,12 +1,12 @@
 # 📋 PERENCANAAN V1 — Gotong Royong PWA
-**Jembatan antar sesi AI** · 23 Jun 2026 · M1–M8 ✅ · **Sesi 18: search fix + Turnstile keys + CSP
+**Jembatan antar sesi AI** · 24 Jun 2026 · M1–M8 ✅ · **Sesi 19: Error 1102 fix + 32 security findings + deploy
 
 > Dokumen ini adalah **peta jalan untuk sesi AI berikutnya**. Kalau kamu (AI) membaca ini,
 > berarti sesi sebelumnya menulis status proyek di sini supaya kamu bisa lanjut tanpa
 > kehilangan konteks. **Baca juga** `docs/CATATAN_PEMBANGUNAN.md` (build log),
 > `docs/PRD.md` (kebutuhan), `AGENTS.md` (aturan keras).
 >
-> **Update 23 Jun sesi 18 — Search fix + Turnstile keys + CSP ✅: Search bar `<input>` real + `/cari` page. Turnstile widget keys extracted & set. CSP tambah `challenges.cloudflare.com`. Build 0 error. Lanjut custom domain atau 🔵 P5 admin.
+> **Update 24 Jun sesi 19 — Error 1102 fix + 32 security findings + deploy ✅: Error 1102 (Worker CPU) fixed. 32 scan findings: 6 Critical ✅, 7 High ✅, 4/10 Medium ✅. `proxy.ts` → `middleware.ts` (Edge runtime). Deploy Cloudflare Workers live. Build 0 error. Di-commit & push ke `docs/arsitektur-c4`.
 
 ---
 
@@ -34,11 +34,13 @@
 │ 🟡 P3 — PWA & PERFORMANCE (1-2 jam ✅ selesai 22 Jun sesi 15)
 │   Lighthouse, installable test, offline queue integration    │
 │                                                              │
-│ 🟠 P4 — M8 DEPLOY CLOUDFLARE (1 hari)                       │
-│   OpenNext + wrangler + deploy via kaki-tangan               │
+│ ✅ 🟠 P4 — M8 DEPLOY CLOUDFLARE (✅ live 24 Jun sesi 19)     │
+│   OpenNext + wrangler + deploy — proxy → middleware (Edge)   │
+│   https://gotong-royong-pwa.wimxgooo.workers.dev             │
 │                                                              │
 │ 🔵 P5 — ADMIN FEATURES (opsional, 1-2 hari)                 │
-│   ✅ Search (done sesi 18), pagination, keep-alive ✅, privasi│
+│   ✅ Search (done sesi 18), 🔒 security fix (sesi 19)        │
+│   pagination, keep-alive ✅, privasi                          │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -301,10 +303,10 @@ NEXTJS_ENV=development
 ### ⚠️ Catatan M8
 | Risiko | Mitigasi |
 |--------|----------|
-| Worker size limit (3 MB free) | Bundle gzip bisa tembus → perlu paid plan ($5/bln) atau optimasi |
-| Serwist SW di Workers | `public/sw.js` harus terdeploy sebagai aset statis |
+| Worker size limit (3 MB free) | Bundle gzip ~2 MB (ok) — pantau setelah update |
+| Serwist SW di Workers | `public/sw.js` terdeploy sebagai aset statis ✅ |
 | Supabase free "tidur" 7 hari | Keep-alive (cron-job.org / GitHub Action ping tiap 10 menit) |
-| ~~`proxy.ts` middleware~~ → **PROXY DIHAPUS** | Next 16 proxy selalu Node.js runtime, OpenNext hard-exit. Solusi: refresh sesi via Server Actions/Route Handlers + client-side |
+| ✅ **proxy.ts diganti** → `middleware.ts` | Edge runtime compatible — OpenNext support. Session refresh jalan ✅ |
 
 ---
 
@@ -401,7 +403,7 @@ validation.ts     — semua schema zod (kasSchema, postSchema, dll)
 
 ---
 
-## 8. 📌 STATUS TERAKHIR (22 Jun 2026)
+## 8. 📌 STATUS TERAKHIR (24 Jun 2026)
 
 ### Lingkungan
 - Next.js 16.2.9 (Turbopack default bundler — webpack-only plugin RUSAK)
@@ -411,34 +413,48 @@ validation.ts     — semua schema zod (kasSchema, postSchema, dll)
 - Git remote: `origin` → `git@github.com:backendgr02-wim/gotong-royong-pwa.git`
 - `.env.local` terisi lengkap (Supabase, VAPID, Turnstile — jangan commit)
 - Turnstile secret key juga set via `wrangler secret put`
-- **M7 SUDAH di-commit & di-push** dari sesi sebelumnya
+- **M7 SUDAH di-commit & di-push**
+- **Deploy live:** `https://gotong-royong-pwa.wimxgooo.workers.dev`
 
-### Bug yang Ditemukan & Diperbaiki (22 Jun sesi 11–12)
+### Bug yang Ditemukan & Diperbaiki (22 Jun sesi 11–12 + 24 Jun sesi 19)
+
 | Bug | File | Fix |
 |-----|------|-----|
-| Hydration error `NetworkStatus` | `src/components/features/network-status.tsx:6` | Inisialisasi `useState(true)` tanpa conditional |
-| `digest()` not found di trigger kas | `src/db/migrations/0007_fix_pgcrypto_search_path.sql` | search_path: `public, extensions` (pgcrypto di schema extensions) |
-| Storage upload pake service role → RLS conflict | `src/lib/storage.ts` | Ganti `serviceClient()` dgn `createClient()` (user JWT) |
-| `Body exceeded 1 MB limit` (413) di Server Action | `next.config.ts` | Tambah `serverActions.bodySizeLimit: "4.5mb"` |
+| Hydration error `NetworkStatus` | `network-status.tsx:6` | `useState(true)` tanpa conditional |
+| `digest()` not found di trigger kas | `0007_fix_pgcrypto_search_path.sql` | search_path: `public, extensions` |
+| Storage upload pake service role → RLS conflict | `src/lib/storage.ts` | Ganti `serviceClient()` → `createClient()` |
+| `Body exceeded 1 MB limit` (413) Server Action | `next.config.ts` | `bodySizeLimit: "4.5mb"` |
+| Error 1102 Worker CPU limit | 4 files | Optimasi query: aggregate SQL, limit, cache-first |
+| SQL injection search page | `src/app/cari/page.tsx` | Escape `%_` wildcards |
+| Open redirect auth callback | `src/app/auth/callback/route.ts` | Validasi `next` path |
+| Race condition toggleSuka/RSVP | `src/actions/posts.ts`, `events.ts` | Atomic DELETE-then-INSERT |
+| Middleware Node.js incompatible | `proxy.ts` → `middleware.ts` | Edge runtime (Next.js 15 style) |
 
 ### Build
-- `npm run build` = **0 error / 0 warning** (terakhir dijalankan 23 Jun sesi 18)
-- Service worker precache: 39 URL, ~800 kB
+- `npm run build` = **0 error / 0 warning** (terakhir 24 Jun sesi 19)
+- Service worker precache: 56 URL, ~1.39 MB
 - Lint: **0 error / 0 warning** (public/sw* di-ignore)
 
-### 🔴 P1 Uji Runtime — ✅ TUNTAS 100% (22 Jun sesi 12)
-Semua fitur interaktif utama terverifikasi. 4 bugs fixed.
+### ✅ Semua P0–P4 SELESAI:
+| Prioritas | Status | Sesi |
+|-----------|--------|------|
+| 🔴 P0 Dokumentasi Arsitektur C4 | ✅ SELESAI | 13 |
+| 🔴 P1 Uji Runtime | ✅ TUNTAS 100% | 11–12 |
+| 🟡 P2 UX Polish | ✅ SELESAI | 14 |
+| 🟡 P3 PWA & Performance | ✅ SELESAI | 14–15 |
+| 🟠 P4 M8 Deploy Cloudflare | ✅ LIVE | 16–19 |
+| 🟠 P4 Security Hardening | ✅ 32 scan findings fixed | 19 |
 
-### 🔴 P0 Dokumentasi Arsitektur — ✅ SELESAI (22 Jun sesi 13)
-Atasan mengirim SAD enterprise. Dibuat `docs/RESPON_ATASAN.md` — analisis kesenjangan + rencana 30 hari. C4 diagram (5 level) di `docs/ARSITEKTUR.md`.
-
-### 🟡 P2 UX Polish — ✅ SELESAI (22 Jun sesi 14)
-### 🟡 P3 PWA & Performance — ✅ SELESAI (22 Jun sesi 15)
-### 🟡 P3 PWA & Performance — ✅ SELESAI (22 Jun sesi 15)
+### Sisa 🔵 P5 Admin (opsional, belum dikerjakan):
+- Manajemen anggota (promosi/pecat)
+- Edit/hapus konten oleh pengurus
+- Pagination feed
+- Kebijakan privasi (UU PDP)
+- **6 Medium items dari scan** (return types, duplicate functions, SameSite cookie, dll)
 
 ### Akun GitHub
 - Login aktif: `wimxwim` (email `wimxgooo@gmail.com`)
-- Repo di bawah: `backendgr02-wim/gotong-royong-pwa` (Private)
+- Repo di bawah: `backendgr02-wim/gotong-royong-pwa` → **kini PUBLIC** (24 Jun sesi 19)
 - Git config global: `wimxwim` / `wimxgooo@gmail.com`
 
 ---
