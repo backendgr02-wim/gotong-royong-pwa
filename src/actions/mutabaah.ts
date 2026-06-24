@@ -22,6 +22,24 @@ export async function toggleMutabaah(formData: FormData): Promise<void> {
     if (!parsed.success) return;
 
     const supabase = await createClient();
+
+    const { data: item } = await supabase
+      .from("mutabaah_items")
+      .select("community_id")
+      .eq("id", parsed.data.itemId)
+      .maybeSingle();
+    if (!item) return;
+    if (item.community_id !== null) {
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("id")
+        .eq("profile_id", user.id)
+        .eq("community_id", item.community_id)
+        .eq("status", "aktif")
+        .maybeSingle();
+      if (!membership) return;
+    }
+
     const tanggal = tanggalJakarta();
 
     const { data: existing } = await supabase

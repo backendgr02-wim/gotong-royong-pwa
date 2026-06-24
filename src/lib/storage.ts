@@ -27,15 +27,24 @@ function sanitizeFilename(name: string): string {
     .toLowerCase();
 }
 
-export async function uploadBuktiTransfer(
-  file: File,
-  userId: string,
-): Promise<{ path: string; signedUrl: string } | { error: string }> {
-  if (file.size > 5 * 1024 * 1024) return { error: "Maksimal 5 MB." };
+type UploadOpts = {
+  bucket: string;
+  maxSize: number;
+  upsert: boolean;
+  namePrefix: string;
+  signedUrlDays?: number;
+};
+
+type UploadResult =
+  | { path: string; publicUrl?: string; signedUrl?: string }
+  | { error: string };
+
+async function uploadImage(file: File, userId: string, opts: UploadOpts): Promise<UploadResult> {
+  if (file.size > opts.maxSize) return { error: "Maksimal " + (opts.maxSize / (1024 * 1024)) + " MB." };
   if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
 
   const ext = file.name.split(".").pop() ?? "jpg";
-  const safeName = sanitizeFilename(`${Date.now()}_${userId.slice(0, 8)}.${ext}`);
+  const safeName = sanitizeFilename(`${opts.namePrefix}_${userId.slice(0, 8)}.${ext}`);
   const filePath = `${userId}/${safeName}`;
 
   const buffer = new Uint8Array(await file.arrayBuffer());
@@ -45,102 +54,68 @@ export async function uploadBuktiTransfer(
 
   const supabase = await createClient();
   const { error: uploadError } = await supabase.storage
-    .from("donation-proofs")
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: false,
-    });
+    .from(opts.bucket)
+    .upload(filePath, buffer, { contentType: file.type, upsert: opts.upsert });
   if (uploadError) return { error: uploadError.message };
 
-  const { data: signed } = await supabase.storage
-    .from("donation-proofs")
-    .createSignedUrl(filePath, 60 * 24 * 7);
-  if (!signed) return { error: "Gagal membuat tautan akses." };
+  if (opts.signedUrlDays) {
+    const { data: signed } = await supabase.storage
+      .from(opts.bucket)
+      .createSignedUrl(filePath, 60 * 24 * opts.signedUrlDays);
+    if (!signed) return { error: "Gagal membuat tautan akses." };
+    return { path: filePath, signedUrl: signed.signedUrl };
+  }
 
-  return { path: filePath, signedUrl: signed.signedUrl };
+  const { data: publik } = supabase.storage.from(opts.bucket).getPublicUrl(filePath);
+  return { path: filePath, publicUrl: publik.publicUrl };
 }
 
-/** Upload gambar postingan ke bucket publik `post-images`. Kembalikan URL publik langsung. */
+export async function uploadBuktiTransfer(
+  file: File,
+  userId: string,
+): Promise<{ path: string; signedUrl: string } | { error: string }> {
+  return uploadImage(file, userId, {
+    bucket: "donation-proofs",
+    maxSize: 5 * 1024 * 1024,
+    upsert: false,
+    namePrefix: Date.now().toString(),
+    signedUrlDays: 7,
+  }) as Promise<{ path: string; signedUrl: string } | { error: string }>;
+}
+
 export async function uploadPostImage(
   file: File,
   userId: string,
 ): Promise<{ path: string; publicUrl: string } | { error: string }> {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const safeName = sanitizeFilename(`${Date.now()}_${userId.slice(0, 8)}.${ext}`);
-  const filePath = `${userId}/${safeName}`;
-
-  if (file.size > 5 * 1024 * 1024) return { error: "Maksimal 5 MB." };
-  if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
-
-  const buffer = new Uint8Array(await file.arrayBuffer());
-
-  const supabase = await createClient();
-  const { error: uploadError } = await supabase.storage
-    .from("post-images")
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: false,
-    });
-  if (uploadError) return { error: uploadError.message };
-
-  const { data: publik } = supabase.storage.from("post-images").getPublicUrl(filePath);
-  return { path: filePath, publicUrl: publik.publicUrl };
+  return uploadImage(file, userId, {
+    bucket: "post-images",
+    maxSize: 5 * 1024 * 1024,
+    upsert: false,
+    namePrefix: Date.now().toString(),
+  }) as Promise<{ path: string; publicUrl: string } | { error: string }>;
 }
 
-/** Upload avatar ke bucket publik `avatars`. Kembalikan URL publik. */
 export async function uploadAvatar(
   file: File,
   userId: string,
 ): Promise<{ path: string; publicUrl: string } | { error: string }> {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const safeName = sanitizeFilename(`avatar_${userId.slice(0, 8)}.${ext}`);
-  const filePath = `${userId}/${safeName}`;
-
-  if (file.size > 2 * 1024 * 1024) return { error: "Maksimal 2 MB." };
-  if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
-
-  const buffer = new Uint8Array(await file.arrayBuffer());
-
-  const supabase = await createClient();
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: true,
-    });
-  if (uploadError) return { error: uploadError.message };
-
-  const { data: publik } = supabase.storage.from("avatars").getPublicUrl(filePath);
-  return { path: filePath, publicUrl: publik.publicUrl };
+  return uploadImage(file, userId, {
+    bucket: "avatars",
+    maxSize: 2 * 1024 * 1024,
+    upsert: true,
+    namePrefix: "avatar",
+  }) as Promise<{ path: string; publicUrl: string } | { error: string }>;
 }
 
-/** Upload foto laporan ke bucket privat `report-images`. Kembalikan signed URL 30 hari. */
 export async function uploadReportImage(
   file: File,
   userId: string,
 ): Promise<{ path: string; signedUrl: string } | { error: string }> {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const safeName = sanitizeFilename(`${Date.now()}_${userId.slice(0, 8)}.${ext}`);
-  const filePath = `${userId}/${safeName}`;
-
-  if (file.size > 5 * 1024 * 1024) return { error: "Maksimal 5 MB." };
-  if (!file.type.startsWith("image/")) return { error: "Hanya file gambar." };
-
-  const buffer = new Uint8Array(await file.arrayBuffer());
-
-  const supabase = await createClient();
-  const { error: uploadError } = await supabase.storage
-    .from("report-images")
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: false,
-    });
-  if (uploadError) return { error: uploadError.message };
-
-  const { data: signed } = await supabase.storage
-    .from("report-images")
-    .createSignedUrl(filePath, 60 * 24 * 30);
-  if (!signed) return { error: "Gagal membuat tautan akses." };
-
-  return { path: filePath, signedUrl: signed.signedUrl };
+  return uploadImage(file, userId, {
+    bucket: "report-images",
+    maxSize: 5 * 1024 * 1024,
+    upsert: false,
+    namePrefix: Date.now().toString(),
+    signedUrlDays: 30,
+  }) as Promise<{ path: string; signedUrl: string } | { error: string }>;
 }

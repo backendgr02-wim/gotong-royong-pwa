@@ -20,7 +20,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, { sameSite: "lax", ...options }),
             );
           } catch {
             // Dipanggil dari Server Component (tidak boleh set cookie) — diabaikan.
