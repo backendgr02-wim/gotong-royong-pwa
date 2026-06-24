@@ -1,48 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
-import { notifRefSchema } from "@/lib/validation";
 
 /**
- * Tandai satu notifikasi dibaca, lalu (opsional) buka tautannya. RLS `notif_update` = milik sendiri.
- * `link` hanya diikuti bila path internal (diawali "/") demi keamanan (cegah open-redirect).
+ * Tandai satu notifikasi sudah dibaca. RLS `notifications_update` memastikan hanya pemilik.
  */
 export async function tandaiDibaca(formData: FormData): Promise<void> {
-  const user = await getUser();
-  if (!user) return;
+  try {
+    const user = await getUser();
+    if (!user) return;
 
-  const parsed = notifRefSchema.safeParse({ notifId: formData.get("notifId") });
-  if (!parsed.success) return;
+    const notifId = formData.get("notifId");
+    if (typeof notifId !== "string" || !notifId) return;
 
-  const supabase = await createClient();
-  await supabase
-    .from("notifications")
-    .update({ dibaca: true })
-    .eq("id", parsed.data.notifId)
-    .eq("profile_id", user.id);
-
-  revalidatePath("/pesan");
-  revalidatePath("/");
-
-  const link = formData.get("link");
-  if (typeof link === "string" && link.startsWith("/")) redirect(link);
+    const supabase = await createClient();
+    await supabase.from("notifications").update({ dibaca: true }).eq("id", notifId);
+    revalidatePath("/pesan");
+  } catch (e) {
+    console.error("tandaiDibaca:", e);
+  }
 }
 
-/** Tandai semua notifikasi sebagai dibaca. */
+/**
+ * Tandai SEMUA notifikasi user sudah dibaca sekaligus (tombol "Tandai Semua Dibaca").
+ */
 export async function tandaiSemuaDibaca(): Promise<void> {
-  const user = await getUser();
-  if (!user) return;
+  try {
+    const user = await getUser();
+    if (!user) return;
 
-  const supabase = await createClient();
-  await supabase
-    .from("notifications")
-    .update({ dibaca: true })
-    .eq("profile_id", user.id)
-    .eq("dibaca", false);
-
-  revalidatePath("/pesan");
-  revalidatePath("/");
+    const supabase = await createClient();
+    await supabase.from("notifications").update({ dibaca: true }).eq("profile_id", user.id).is("dibaca", false);
+    revalidatePath("/pesan");
+  } catch (e) {
+    console.error("tandaiSemuaDibaca:", e);
+  }
 }

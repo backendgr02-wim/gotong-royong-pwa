@@ -1,7 +1,7 @@
 /**
- * Jadwal sholat via Aladhan API (gratis, tanpa API key).
+ * Jadwal sholat via `prayer_cache` (tabel Supabase) dengan fallback Aladhan API.
  * method=20 = Kementerian Agama RI (KEMENAG) — sesuai standar Indonesia.
- * Hasil baca di-cache 1 jam oleh Next; selain itu disimpan ke tabel `prayer_cache` harian.
+ * Dipanggil tiap render Beranda → cache menghindari CPU/memory spike di Worker.
  */
 export type PrayerTimes = {
   Subuh: string;
@@ -11,12 +11,46 @@ export type PrayerTimes = {
   Isya: string;
 };
 
+function tanggalHariIni(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const t = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${t}`;
+}
+
+function tanggalAladhan(): string {
+  const d = new Date();
+  return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+}
+
 export async function fetchPrayerTimes(
   lat: number,
   lng: number,
   date: Date = new Date(),
+  communityId?: string,
 ): Promise<PrayerTimes | null> {
-  const d = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+  // 1. Coba baca dari cache Supabase
+  if (communityId) {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const hari = tanggalHariIni();
+    const { data: cached } = await supabase
+      .from("prayer_cache")
+      .select("waktu")
+      .eq("community_id", communityId)
+      .eq("tanggal", hari)
+      .maybeSingle();
+    if (cached?.waktu) {
+      const w = cached.waktu as Record<string, string>;
+      if (w.Subuh && w.Dzuhur && w.Ashar && w.Maghrib && w.Isya) {
+        return w as PrayerTimes;
+      }
+    }
+  }
+
+  // 2. Fallback: Aladhan API
+  const d = tanggalAladhan();
   const url = `https://api.aladhan.com/v1/timings/${d}?latitude=${lat}&longitude=${lng}&method=20`;
 
   try {
@@ -25,13 +59,33 @@ export async function fetchPrayerTimes(
     const json = await res.json();
     const t = json?.data?.timings;
     if (!t) return null;
-    return {
+    const times: PrayerTimes = {
       Subuh: t.Fajr,
       Dzuhur: t.Dhuhr,
       Ashar: t.Asr,
       Maghrib: t.Maghrib,
       Isya: t.Isha,
     };
+
+    // 3. Simpan ke cache (tidak blokir)
+    if (communityId) {
+      try {
+        const { createClient } = await import("@/lib/supabase/server");
+        const supabase2 = await createClient();
+        await supabase2.from("prayer_cache").upsert(
+          {
+            community_id: communityId,
+            tanggal: tanggalHariIni(),
+            waktu: times,
+          },
+          { onConflict: "community_id,tanggal", ignoreDuplicates: true },
+        );
+      } catch {
+        // cache gagal simpan → tidak kritis
+      }
+    }
+
+    return times;
   } catch {
     return null;
   }

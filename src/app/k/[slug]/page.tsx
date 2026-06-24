@@ -10,11 +10,14 @@ import {
   TrendingUp,
   TrendingDown,
   LogIn,
+  House,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
 import { fetchPrayerTimes, sholatBerikutnya } from "@/lib/prayer";
 import { formatRupiah } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { QrKomunitas } from "@/components/features/qr-komunitas";
 
 // Halaman publik ber-data → render saat diminta (Next 16).
 export const dynamic = "force-dynamic";
@@ -38,8 +41,9 @@ async function getCommunity(slug: string): Promise<Community | null> {
     .from("communities")
     .select("id, nama, jenis, kelurahan, deskripsi, lat, lng, slug_publik")
     .eq("slug_publik", slug)
+    .returns<Community>()
     .maybeSingle();
-  return (data as Community) ?? null;
+  return data ?? null;
 }
 
 export async function generateMetadata({
@@ -75,13 +79,16 @@ export default async function HalamanPublik({ params }: { params: Promise<{ slug
   const c = await getCommunity(slug);
   if (!c) notFound();
 
+  const user = await getUser();
   const supabase = await createClient();
 
   // Ringkasan kas publik (RINGKAS via RPC — bukan baris mentah).
   const { data: kasData } = await supabase.rpc("public_kas_summary", { slug });
-  const kas = (Array.isArray(kasData) ? kasData[0] : kasData) as
-    | { total: number; pemasukan: number; penyaluran: number; update_terakhir: string | null }
-    | undefined;
+  const raw = Array.isArray(kasData) ? kasData[0] : kasData;
+  const kas: { total: number; pemasukan: number; penyaluran: number; update_terakhir: string | null } | undefined =
+    raw
+      ? { total: Number(raw.total) || 0, pemasukan: Number(raw.pemasukan) || 0, penyaluran: Number(raw.penyaluran) || 0, update_terakhir: raw.update_terakhir ?? null }
+      : undefined;
 
   // Kegiatan mendatang (events = info publik).
   const { data: events } = await supabase
@@ -109,7 +116,7 @@ export default async function HalamanPublik({ params }: { params: Promise<{ slug
     .limit(20);
 
   // Jadwal sholat (fallback Jakarta Selatan bila lat/lng kosong).
-  const times = await fetchPrayerTimes(c.lat ?? -6.2607, c.lng ?? 106.7816);
+  const times = await fetchPrayerTimes(c.lat ?? -6.2607, c.lng ?? 106.7816, new Date(), c.id);
   const berikutnya = times ? sholatBerikutnya(times) : null;
 
   const saldo = Number(kas?.total ?? 0);
@@ -121,12 +128,24 @@ export default async function HalamanPublik({ params }: { params: Promise<{ slug
       {/* Bar atas */}
       <div className="flex items-center justify-between px-4 py-3">
         <span className="text-sm font-bold text-primary-deep">Gotong Royong</span>
-        <Link
-          href="/masuk"
-          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white"
-        >
-          <LogIn size={14} /> Masuk
-        </Link>
+        <div className="flex items-center gap-2">
+          <QrKomunitas slug={slug} nama={c.nama} />
+          {user ? (
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white"
+            >
+              <House size={14} /> Buka Beranda
+            </Link>
+          ) : (
+            <Link
+              href="/masuk"
+              className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white"
+            >
+              <LogIn size={14} /> Masuk
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Header komunitas */}
@@ -269,20 +288,6 @@ export default async function HalamanPublik({ params }: { params: Promise<{ slug
             </ul>
           </Card>
         )}
-
-        {/* CTA */}
-        <Card className="text-center">
-          <p className="text-sm font-semibold">Warga {c.nama}?</p>
-          <p className="mt-1 text-xs text-muted">
-            Masuk untuk ikut kegiatan, lihat kas lengkap, &amp; berdonasi.
-          </p>
-          <Link
-            href="/masuk"
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white active:scale-[0.99]"
-          >
-            <LogIn size={16} /> Masuk / Daftar
-          </Link>
-        </Card>
 
         <p className="pb-6 pt-1 text-center text-xs text-muted">
           Halaman publik · jadwal sholat metode Kemenag RI · tanpa data pribadi warga.

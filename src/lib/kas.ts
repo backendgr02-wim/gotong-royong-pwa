@@ -28,22 +28,30 @@ export type KasSummary = {
 /** Ringkasan kas (saldo, total masuk/keluar, update terakhir, jumlah catatan) per komunitas. */
 export async function getKasSummary(communityId: string): Promise<KasSummary> {
   const supabase = await createClient();
-  const { data } = await supabase
+
+  // Aggregate di Postgres — bukan fetch 10K rows
+  const { data: sums } = await supabase
     .from("kas_entries")
-    .select("jenis, nominal, tgl")
+    .select("jenis, sum_nominal:nominal.sum()")
+    .eq("community_id", communityId);
+  const masuk = Number((sums ?? []).find((r) => r.jenis === "masuk")?.sum_nominal ?? 0);
+  const keluar = Number((sums ?? []).find((r) => r.jenis === "keluar")?.sum_nominal ?? 0);
+
+  const { data: maxRow } = await supabase
+    .from("kas_entries")
+    .select("tgl")
+    .eq("community_id", communityId)
+    .order("tgl", { ascending: false })
+    .limit(1);
+
+  const { count } = await supabase
+    .from("kas_entries")
+    .select("*", { count: "exact", head: true })
     .eq("community_id", communityId);
 
-  let masuk = 0;
-  let keluar = 0;
-  let updateTerakhir: string | null = null;
-  const rows = data ?? [];
-  for (const k of rows) {
-    const n = Number(k.nominal) || 0;
-    if (k.jenis === "masuk") masuk += n;
-    else keluar += n;
-    if (!updateTerakhir || k.tgl > updateTerakhir) updateTerakhir = k.tgl;
-  }
-  return { saldo: masuk - keluar, masuk, keluar, updateTerakhir, jumlah: rows.length };
+  const updateTerakhir = maxRow?.[0]?.tgl ?? null;
+  const jumlah = count ?? 0;
+  return { saldo: masuk - keluar, masuk, keluar, updateTerakhir, jumlah };
 }
 
 /**
@@ -64,9 +72,10 @@ export async function getKasEntries(
     q = q.gte("tgl", `${opts.bulan}-01`).lte("tgl", `${opts.bulan}-31`);
   }
 
-  const { data } = await q.order("tgl", { ascending: false }).order("created_at", {
-    ascending: false,
-  });
+  const { data } = await q
+    .order("tgl", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   return (data ?? []).map((k) => ({
     id: k.id,

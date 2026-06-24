@@ -13,6 +13,10 @@ import {
   ArrowRight,
   Megaphone,
   Pin,
+  Home,
+  Landmark,
+  Building2,
+  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -29,7 +33,14 @@ import { GuestBeranda } from "@/components/features/guest-beranda";
 
 export const dynamic = "force-dynamic";
 
-const kategori = ["Donasi", "Keluarga", "Masjid", "Pasar", "B & B", "RT/RW"];
+type Cat = { label: string; icon: typeof HeartHandshake; href: string; desc?: string };
+const kategori: Cat[] = [
+  { label: "Donasi", icon: HeartHandshake, href: "/donasi" },
+  { label: "Keluarga", icon: Home, href: "/keluarga" },
+  { label: "Masjid", icon: Landmark, href: "/masjid" },
+  { label: "B & B", icon: Sparkles, href: "#", desc: "Menyusul" },
+  { label: "RT/RW", icon: Building2, href: "/rtrw" },
+];
 
 function tanggalJakarta(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
@@ -75,7 +86,7 @@ export default async function Beranda() {
   // --- Jadwal sholat (Aladhan/Kemenag). Fallback: Cilandak, Jakarta Selatan. ---
   const lat = komunitas.lat ?? -6.2607;
   const lng = komunitas.lng ?? 106.7816;
-  const times = await fetchPrayerTimes(lat, lng);
+  const times = await fetchPrayerTimes(lat, lng, new Date(), komunitas.id);
   const berikutnya = times ? sholatBerikutnya(times) : null;
 
   // --- Kegiatan mendatang (sumber tunggal: lib/events) ---
@@ -227,21 +238,23 @@ export default async function Beranda() {
 
         {/* Kategori (navigasi statis) */}
         <div className="flex gap-3 overflow-x-auto pb-1">
-          {kategori.map((k, i) => {
-            const href = i === 0 ? "/donasi" : "#";
-            const Wrapper = i === 0 ? Link : "div";
+          {kategori.map((cat) => {
+            const Icon = cat.icon;
+            const isLink = !cat.href.startsWith("#");
+            const Wrapper = isLink ? Link : "div";
             return (
-              <Wrapper key={k} href={href as string} className="flex w-16 shrink-0 flex-col items-center gap-1">
+              <Wrapper key={cat.label} href={cat.href} className="flex w-16 shrink-0 flex-col items-center gap-1">
                 <div
                   className={`flex h-13 w-13 items-center justify-center rounded-full ${
-                    i === 0
+                    isLink
                       ? "border-2 border-primary bg-success-subtle text-primary"
                       : "bg-gray-100 text-muted"
                   } p-3`}
                 >
-                  <HeartHandshake size={22} />
+                  <Icon size={22} />
                 </div>
-                <span className="text-center text-[10px]">{k}</span>
+                <span className="text-center text-[10px]">{cat.label}</span>
+                {cat.desc && <span className="text-[8px] text-muted">{cat.desc}</span>}
               </Wrapper>
             );
           })}
